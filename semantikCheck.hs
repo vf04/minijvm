@@ -56,7 +56,13 @@ getFieldDecl _ [] = Nothing
 getFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
 	| fieldName == name = Just (FieldDecl(fieldType,fieldName))
 	| otherwise = getFieldDecl name fieldDecls
-	
+
+getMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
+getMethodDecl _ [] = Nothing
+getMethodDecl name (Method(methodType,methodName,methodArgs,methodStmts) : methodDecls)
+	| methodName == name = Just (Method(methodType,methodName,methodArgs,methodStmts))
+	| otherwise = getMethodDecl name methodDecls
+
 getLocalVar :: String -> [(String, Type)] -> Maybe (String, Type)
 getLocalVar _ [] = Nothing
 getLocalVar name ((varName, varType) : localVars)
@@ -68,6 +74,51 @@ getLocalVar name ((varName, varType) : localVars)
 --	className == name && elem fieldName (map (\(FieldDecl(fType, fName)) -> fName) fieldDecl)
 --	|| isFieldOfClass(fieldName, className, classes)
 
+isSubtypeOf :: Type -> Type -> Bool
+isSubtypeOf "bool" "bool" = True
+isSubtypeOf "char" "char" = True
+isSubtypeOf "int" "int" = True
+isSubtypeOf "bool" "int" = True
+isSubtypeOf "int" "bool" = False
+isSubtypeOf "null" _ = True
+isSubtypeOf _ "null" = False
+isSubtypeOf "bool" "char" = True
+isSubtypeOf "char" "bool" = False
+isSubtypeOf "char" "int" = True
+isSubtypeOf "int" "char" = False
 
 --typecheckStmt :: Stmt -> [(String, Type)] -> [Class] -> Stmt
 
+typecheckStmtExpr :: StmtExpr -> [(String, Type)] -> [Class] -> StmtExpr
+typecheckStmtExpr(Assign(expA, expB)) = (\localVars -> (\classes ->
+	let
+		typedExprA = typecheckExpr expA localVars classes
+		typedExprB = typecheckExpr expB localVars classes
+		typeA = getTypeFromExpr typedExprA
+		typeB = getTypeFromExpr typedExprB
+	in
+		if isSubtypeOf typeB typeA
+		then
+			(TypedStmtExpr(Assign(typedExprA,typedExprB),typeA))
+		else
+			(TypedStmtExpr(Assign(typedExprA,typedExprB),"FIXME"))))
+-- TODO: Prüfen, ob Typen kompatibel sind
+
+typecheckStmtExpr(New(newType, newExpressions)) = (\localVars -> (\classes ->
+	let
+		typedNewExpressions = map (\expr -> typecheckExpr expr localVars classes) newExpressions
+	in
+		(TypedStmtExpr(New(newType,typedNewExpressions),newType))))
+
+typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars -> (\classes ->
+	let
+		typedArguments = map (\arg -> typecheckExpr arg localVars classes) arguments
+		typedInstance = typecheckExpr instanceExpr localVars classes
+		instanceType = getTypeFromExpr typedInstance
+		instanceClass = getClass instanceType classes
+		methodDecl = getMethodDecl methodName ((\(Just (Class(_,_,x))) -> x)(instanceClass))
+		methodType = (\(Just (Method(typeName,_,_,_))) -> typeName) methodDecl
+		methodArgs = (\(Just (Method(_,_,args,_)) -> args)) methodDecl
+	in
+		(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType))))
+-- TODO: Prüfen, ob Argument-Typen kompatibel sind
