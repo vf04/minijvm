@@ -5,11 +5,23 @@ import AbsSyn
 typecheckExpr :: Expr -> [(String, Type)] -> [Class] -> Expr
 typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 	let
-		var = getLocalVar varName localVars
-		varType = (\(Just (_, typeName)) -> typeName) var
+		localVar = getLocalVar varName localVars
 	in
-		TypedExpr(LocalOrFieldVar(varName),varType)))
---FIXME FieldVars
+		if localVar == Nothing
+		then
+			let
+				thisVar = getLocalVar "this" localVars
+				thisClassType = (\(Just (_, typeName)) -> typeName) thisVar
+				thisClass = getClass thisClassType classes
+				fieldVarDecl = getFieldDecl varName ((\(Just (Class(_,a,_))) -> a) thisClass)
+				fieldVarType = (\(Just (FieldDecl(fieldType, _))) -> fieldType) fieldVarDecl
+			in
+			TypedExpr(LocalOrFieldVar(varName),fieldVarType)
+		else
+			let
+				varType = (\(Just (_, typeName)) -> typeName) localVar
+			in
+				TypedExpr(LocalOrFieldVar(varName),varType)))
 
 typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 	let
@@ -43,7 +55,7 @@ typecheckExpr(Jnull) = (\ _ -> (\ _ -> TypedExpr(Jnull,"null")))
 -- Hilfsfunktionen
 
 typeofBinary :: (String, Type, Type) -> Type
-typeofBinary(operator,typeA,typeB) = "FIXME"
+typeofBinary(operator,typeA,typeB) = "FIXME : Type of Binary"
 
 getClass :: Type -> [Class] -> Maybe Class
 getClass _ [] = Nothing
@@ -101,7 +113,7 @@ typecheckStmtExpr(Assign(expA, expB)) = (\localVars -> (\classes ->
 		then
 			(TypedStmtExpr(Assign(typedExprA,typedExprB),typeA))
 		else
-			(TypedStmtExpr(Assign(typedExprA,typedExprB),"FIXME"))))
+			(TypedStmtExpr(Assign(typedExprA,typedExprB),"FIXME: type mismatch"))))
 -- TODO: Prüfen, ob Typen kompatibel sind
 
 typecheckStmtExpr(New(newType, newExpressions)) = (\localVars -> (\classes ->
@@ -118,7 +130,14 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		instanceClass = getClass instanceType classes
 		methodDecl = getMethodDecl methodName ((\(Just (Class(_,_,x))) -> x)(instanceClass))
 		methodType = (\(Just (Method(typeName,_,_,_))) -> typeName) methodDecl
-		methodArgs = (\(Just (Method(_,_,args,_)) -> args)) methodDecl
+		methodArgs = (\(Just (Method(_,_,args,_))) -> args) methodDecl
+		declArgTypes = map (\(argType, argName) -> argType) methodArgs
+		actualArgTypes = map getTypeFromExpr typedArguments
+		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
 	in
-		(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType))))
+		if argTypesMatch
+		then
+			(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType))
+		else
+			(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),"FIXME: argument type mismatch"))))
 -- TODO: Prüfen, ob Argument-Typen kompatibel sind
