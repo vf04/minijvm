@@ -41,10 +41,12 @@ typecheckExpr(Unary(operator, expr)) =
 typecheckExpr(Binary(operator, expA, expB)) = 
 	(\ localVars -> (\ classes -> 
 	let
-		typedExprA = (typecheckExpr(expA))(localVars)(classes)
-		typedExprB = (typecheckExpr(expB))(localVars)(classes)
-	in TypedExpr(Binary(operator,typedExprA,typedExprB),
-		typeofBinary(operator,getTypeFromExpr(typedExprA),getTypeFromExpr(typedExprB)))))
+		typedExprA = typecheckExpr expA localVars classes
+		typedExprB = typecheckExpr expB localVars classes
+		typeA = getTypeFromExpr typedExprA
+		typeB = getTypeFromExpr typedExprB
+		typeOfBinary = getTypeOfBinary operator typeA typeB
+	in TypedExpr(Binary(operator,typedExprA,typedExprB),typeOfBinary)))
 typecheckExpr(Integer(i)) = (\ _ -> (\ _ -> TypedExpr(Integer(i),"int")))
 typecheckExpr(Bool(b)) = (\ _ -> (\ _ -> TypedExpr(Bool(b),"bool")))
 typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),"char")))
@@ -59,8 +61,15 @@ typeUpperBound x "void" = x
 typeUpperBound _ _ = "FIXME: upper bound"
 
 -- Eine Methode je Operator?
-typeofBinary :: (String, Type, Type) -> Type
-typeofBinary(operator,typeA,typeB) = "FIXME : Type of Binary"
+getTypeOfBinary :: String -> Type -> Type -> Type
+getTypeOfBinary("+") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("-") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("*") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("/") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("&&") = (\"bool" -> (\"bool" -> "bool"))
+getTypeOfBinary("||") = (\"bool" -> (\"bool" -> "bool"))
+
 
 getClass :: Type -> [Class] -> Maybe Class
 getClass _ [] = Nothing
