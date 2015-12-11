@@ -14,7 +14,10 @@ data Stmt = Block([Stmt])
           | LocalVarDecl(Type, String) 
           | If(Expr, Stmt , Maybe Stmt) 
           | StmtExprStmt(StmtExpr) 
+		  | TypedStmt(Stmt, Type)
           deriving (Show)
+
+getTypeFromStmt (TypedStmt(_, typ)) = typ
 
 data StmtExpr = Assign(Expr, Expr) 
               | New(Type, [Expr]) 
