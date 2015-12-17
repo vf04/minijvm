@@ -53,71 +53,6 @@ typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),"char")))
 typecheckExpr(String(s)) = (\ _ -> (\ _ -> TypedExpr(String(s),"String")))
 typecheckExpr(Jnull) = (\ _ -> (\ _ -> TypedExpr(Jnull,"null")))
 
--- Hilfsfunktionen
-
-typeUpperBound :: Type -> Type -> Type
-typeUpperBound "void" x = x
-typeUpperBound x "void" = x
-typeUpperBound _ _ = "FIXME: upper bound"
-
--- Eine Methode je Operator?
-getTypeOfBinary :: String -> Type -> Type -> Type
-getTypeOfBinary("+") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("-") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("*") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("/") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("&&") = (\"bool" -> (\"bool" -> "bool"))
-getTypeOfBinary("||") = (\"bool" -> (\"bool" -> "bool"))
-
-
-getClass :: Type -> [Class] -> Maybe Class
-getClass _ [] = Nothing
-getClass className (Class(name, fieldDecl, methodDecl) : classes)
-	| className == name = Just (Class(name, fieldDecl, methodDecl))
-	| otherwise = getClass className classes
-
-getFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
-getFieldDecl _ [] = Nothing
-getFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
-	| fieldName == name = Just (FieldDecl(fieldType,fieldName))
-	| otherwise = getFieldDecl name fieldDecls
-
-getMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
-getMethodDecl _ [] = Nothing
-getMethodDecl name (Method(methodType,methodName,methodArgs,methodStmts) : methodDecls)
-	| methodName == name = Just (Method(methodType,methodName,methodArgs,methodStmts))
-	| otherwise = getMethodDecl name methodDecls
-
-getLocalVar :: String -> [(String, Type)] -> Maybe (String, Type)
-getLocalVar _ [] = Nothing
-getLocalVar name ((varName, varType) : localVars)
-	| varName == name = Just (varName, varType)
-	| otherwise = getLocalVar name localVars
---isFieldOfClass :: (String, Type, [Class]) -> Bool
---isFieldOfClass(fieldName, className, []) = False
---isFieldOfClass(fieldName, className, (Class(name, fieldDecl, methodDecl)) : classes) =
---	className == name && elem fieldName (map (\(FieldDecl(fType, fName)) -> fName) fieldDecl)
---	|| isFieldOfClass(fieldName, className, classes)
-
-isSubtypeOf :: Type -> Type -> Bool
-isSubtypeOf "bool" "bool" = True
-isSubtypeOf "char" "char" = True
-isSubtypeOf "int" "int" = True
-isSubtypeOf "bool" "int" = True
-isSubtypeOf "int" "bool" = False
-isSubtypeOf "null" _ = True
-isSubtypeOf _ "null" = False
-isSubtypeOf "bool" "char" = True
-isSubtypeOf "char" "bool" = False
-isSubtypeOf "char" "int" = True
-isSubtypeOf "int" "char" = False
-
-removeLocalVar :: String -> [(Type, String)] -> [(Type, String)]
-removeLocalVar(varName) = (\varList ->
-	foldr (\(aVarType,aVarName) list -> 
-		if aVarName == varName then list
-		else (aVarType,aVarName) : list) [] varList)
 
 typecheckStmt :: Stmt -> [(String, Type)] -> [Class] -> Stmt
 typecheckStmt(Block((LocalVarDecl(localVarType, localVarName)) : stmts)) = (\localVars -> (\classes ->
@@ -210,3 +145,122 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 			(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType))
 		else
 			error "argument type mismatch in method call"))
+
+typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
+typecheckFieldDecls fieldDecls classes = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
+
+typecheckMethod :: MethodDecl -> Type -> [Class] -> MethodDecl
+typecheckMethod(Method(methodType, methodName, arguments, stmt)) = (\thisType -> (\classes ->
+	let
+		returnTypeIsValid = typeExists methodType classes
+	in
+		if returnTypeIsValid
+		then
+			let
+				argumentTypesAreValid = and $ map (\(argumentType,_) -> typeExists argumentType classes) arguments
+			in
+				if argumentTypesAreValid
+				then
+					let
+						localVars = map (\(typeName,argName) -> (argName,typeName)) arguments
+						typedStmt = typecheckStmt stmt (("this",thisType) : localVars) classes
+						actualMehtodType = getTypeFromStmt typedStmt
+					in
+						if isSubtypeOf actualMehtodType methodType
+						then
+							Method(methodType, methodName, arguments, typedStmt)
+						else
+							error "Method return type does not match to the given type"
+				else
+					error $ "One or multiple arguments of method" ++ methodName ++ " in class " ++ thisType ++ " name an invalid type"
+		else
+			error $ "Invalid return type " ++ methodType ++ " of method " ++ methodName ++ " in class " ++ thisType))
+
+typecheckClass :: Class -> [Class] -> Class
+typecheckClass(Class(className, fieldDecls, methodDecls)) = (\classes ->
+	let
+		fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
+	in
+		if fieldDeclTypesExist
+		then
+			let
+				typedMethods = map (\methodDecl -> typecheckMethod methodDecl className classes) methodDecls
+			in
+				Class(className, fieldDecls, typedMethods)
+		else
+			error $ "One or multiple field declarations of class " ++ className ++ " name an invalid type")
+
+typecheckPrg :: Prg -> Prg
+typecheckPrg(classes) =
+	map (\theClass -> typecheckClass theClass classes) classes
+
+-- Hilfsfunktionen
+
+typeUpperBound :: Type -> Type -> Type
+typeUpperBound "void" x = x
+typeUpperBound x "void" = x
+typeUpperBound "null" x = "null"
+typeUpperBound x "null" = "null"
+typeUpperBound "bool" "bool" = "bool"
+typeUpperBound "bool" "char" = "char"
+typeUpperBound "bool" "int" = "int"
+typeUpperBound "char" "bool" = "char"
+typeUpperBound "char" "char" = "char"
+typeUpperBound "char" "int" = "int"
+typeUpperBound "int" "bool" = "int"
+typeUpperBound "int" "char" = "int"
+typeUpperBound "int" "int" = "int"
+typeUpperBound _ _ = "Object"
+
+getTypeOfBinary :: String -> Type -> Type -> Type
+getTypeOfBinary("+") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("-") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("*") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("/") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
+getTypeOfBinary("&&") = (\"bool" -> (\"bool" -> "bool"))
+getTypeOfBinary("||") = (\"bool" -> (\"bool" -> "bool"))
+
+getClass :: Type -> [Class] -> Maybe Class
+getClass _ [] = Nothing
+getClass className (Class(name, fieldDecl, methodDecl) : classes)
+	| className == name = Just (Class(name, fieldDecl, methodDecl))
+	| otherwise = getClass className classes
+
+getFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
+getFieldDecl _ [] = Nothing
+getFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
+	| fieldName == name = Just (FieldDecl(fieldType,fieldName))
+	| otherwise = getFieldDecl name fieldDecls
+
+getMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
+getMethodDecl _ [] = Nothing
+getMethodDecl name (Method(methodType,methodName,methodArgs,methodStmts) : methodDecls)
+	| methodName == name = Just (Method(methodType,methodName,methodArgs,methodStmts))
+	| otherwise = getMethodDecl name methodDecls
+
+getLocalVar :: String -> [(String, Type)] -> Maybe (String, Type)
+getLocalVar _ [] = Nothing
+getLocalVar name ((varName, varType) : localVars)
+	| varName == name = Just (varName, varType)
+	| otherwise = getLocalVar name localVars
+
+isSubtypeOf :: Type -> Type -> Bool
+isSubtypeOf x y = (typeUpperBound x y) == y
+
+removeLocalVar :: String -> [(String, Type)] -> [(String, Type)]
+removeLocalVar(varName) = (\varList ->
+	foldr (\(aVarName,aVarType) list -> 
+		if aVarName == varName then list
+		else (aVarName,aVarType) : list) [] varList)
+
+typeExists :: Type -> [Class] -> Bool
+typeExists "bool" _ = True
+typeExists "char" _ = True
+typeExists "int" _ = True
+typeExists "null" _ = True
+typeExists "void" _ = True
+typeExists "String" _ = True
+typeExists "Object" _ = True
+typeExists typeName classes = elem typeName $ map (\(Class(className,_,_)) -> className) classes
+
