@@ -1,8 +1,0 @@
-== Parser ==
-
-* Token-Liste ist schon angefangen und kann im Prinzip aus dem Alex-File übernommen werden.
-* Type Token ist im Alex-File definiert das importiert wird.
-
-== AbsSyn ==
-
-* Parser gibt am Ende eine Klasse bzw. Liste von Klassen aus.
