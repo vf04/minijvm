@@ -203,14 +203,11 @@ typeUpperBound x "void" = x
 typeUpperBound "null" x = "null"
 typeUpperBound x "null" = "null"
 typeUpperBound "bool" "bool" = "bool"
-typeUpperBound "bool" "char" = "char"
 typeUpperBound "bool" "int" = "int"
-typeUpperBound "char" "bool" = "char"
 typeUpperBound "char" "char" = "char"
-typeUpperBound "char" "int" = "int"
 typeUpperBound "int" "bool" = "int"
-typeUpperBound "int" "char" = "int"
 typeUpperBound "int" "int" = "int"
+typeUpperBound "String" "String" = "String"
 typeUpperBound _ _ = "Object"
 
 getTypeOfBinary :: String -> Type -> Type -> Type
