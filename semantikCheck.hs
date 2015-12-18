@@ -73,6 +73,7 @@ typecheckStmt(Block(firstStmt : stmts)) = (\localVars -> (\classes ->
 		typeOfBlock = typeUpperBound typeOfFirstStmt typeOfBlockOfStmts
 	in
 		TypedStmt(Block([typedFirstStmt,typedBlockOfStmts]),typeOfBlock)))
+typecheckStmt(Block([])) = (\_ -> (\_ -> TypedStmt(Block([]),"void")))
 typecheckStmt(Return(expr)) = (\localVars -> (\classes ->
 	let
 		typedExpr = typecheckExpr expr localVars classes
