@@ -6,7 +6,7 @@ data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
 
 data FieldDecl = FieldDecl(Type, String) deriving (Show)
 
-data MethodDecl = Method(Type, String,[(Type,String)], Stmt) deriving (Show)
+data MethodDecl = MethodDecl(Type, String,[(Type,String)], Stmt) deriving (Show)
 
 data Stmt = Block([Stmt])
           | Return( Expr )

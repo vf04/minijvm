@@ -135,8 +135,8 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		instanceType = getTypeFromExpr typedInstance
 		instanceClass = getClass instanceType classes
 		methodDecl = getMethodDecl methodName ((\(Just (Class(_,_,x))) -> x)(instanceClass))
-		methodType = (\(Just (Method(typeName,_,_,_))) -> typeName) methodDecl
-		methodArgs = (\(Just (Method(_,_,args,_))) -> args) methodDecl
+		methodType = (\(Just (MethodDecl(typeName,_,_,_))) -> typeName) methodDecl
+		methodArgs = (\(Just (MethodDecl(_,_,args,_))) -> args) methodDecl
 		declArgTypes = map (\(argType, argName) -> argType) methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
 		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
@@ -151,7 +151,7 @@ typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
 typecheckFieldDecls fieldDecls classes = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
 
 typecheckMethod :: MethodDecl -> Type -> [Class] -> MethodDecl
-typecheckMethod(Method(methodType, methodName, arguments, stmt)) = (\thisType -> (\classes ->
+typecheckMethod(MethodDecl(methodType, methodName, arguments, stmt)) = (\thisType -> (\classes ->
 	let
 		returnTypeIsValid = typeExists methodType classes
 	in
@@ -169,7 +169,7 @@ typecheckMethod(Method(methodType, methodName, arguments, stmt)) = (\thisType ->
 					in
 						if isSubtypeOf actualMehtodType methodType
 						then
-							Method(methodType, methodName, arguments, typedStmt)
+							MethodDecl(methodType, methodName, arguments, typedStmt)
 						else
 							error "Method return type does not match to the given type"
 				else
@@ -233,8 +233,8 @@ getFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
 
 getMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
 getMethodDecl _ [] = Nothing
-getMethodDecl name (Method(methodType,methodName,methodArgs,methodStmts) : methodDecls)
-	| methodName == name = Just (Method(methodType,methodName,methodArgs,methodStmts))
+getMethodDecl name (MethodDecl(methodType,methodName,methodArgs,methodStmts) : methodDecls)
+	| methodName == name = Just (MethodDecl(methodType,methodName,methodArgs,methodStmts))
 	| otherwise = getMethodDecl name methodDecls
 
 getLocalVar :: String -> [(String, Type)] -> Maybe (String, Type)
