@@ -2,24 +2,24 @@ import AbsSyn
 
 -- Ausdruck/Statement, Lokale Variablen, Sichtbare Klassen -> Getypter Ausdruck/Statement
 
-typecheckExpr :: Expr -> [(String, Type)] -> [Class] -> Expr
+typecheckExpr :: Expr -> [(Type, String)] -> [Class] -> Expr
 typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 	let
-		localVar = getLocalVar varName localVars
+		localVar = getMaybeLocalVar varName localVars
 	in
 		if localVar == Nothing
 		then
 			let
-				thisVar = getLocalVar "this" localVars
-				thisClassType = (\(Just (_, typeName)) -> typeName) thisVar
-				thisClass = getClass thisClassType classes
-				fieldVarDecl = getFieldDecl varName ((\(Just (Class(_,a,_))) -> a) thisClass)
-				fieldVarType = (\(Just (FieldDecl(fieldType, _))) -> fieldType) fieldVarDecl
+				thisVar = getMaybeLocalVar "this" localVars
+				thisClassType = getTypeFromLocalVar $ deMaybe thisVar
+				thisClass = getMaybeClass thisClassType classes
+				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ deMaybe thisClass
+				fieldVarType = getTypeFromFieldDecl $ deMaybe fieldVarDecl
 			in
 			TypedExpr(LocalOrFieldVar(varName),fieldVarType)
 		else
 			let
-				varType = (\(Just (_, typeName)) -> typeName) localVar
+				varType = getTypeFromLocalVar $ deMaybe localVar
 			in
 				TypedExpr(LocalOrFieldVar(varName),varType)))
 
@@ -27,9 +27,9 @@ typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 	let
 		instanceExpr = (typecheckExpr(expr) localVars classes)
 		instanceType = getTypeFromExpr(instanceExpr)
-		instanceClass = getClass instanceType classes
-		instVarFieldDecl = getFieldDecl instVarName ((\(Just (Class(_,a,_))) -> a) instanceClass)
-		instVarType = (\(Just (FieldDecl(fieldType, _))) -> fieldType) instVarFieldDecl
+		instanceClass = getMaybeClass instanceType classes
+		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ deMaybe instanceClass
+		instVarType = getTypeFromFieldDecl $ deMaybe instVarFieldDecl
 	in
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)))
 --TODO: Schönere Fehlerausgaben, falls Klasse oder Feld nicht gefunden
@@ -52,27 +52,35 @@ typecheckExpr(Bool(b)) = (\ _ -> (\ _ -> TypedExpr(Bool(b),"bool")))
 typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),"char")))
 typecheckExpr(String(s)) = (\ _ -> (\ _ -> TypedExpr(String(s),"String")))
 typecheckExpr(Jnull) = (\ _ -> (\ _ -> TypedExpr(Jnull,"null")))
+typecheckExpr(StmtExprExpr(stmtExpr)) =
+	(\localVars -> (\classes ->
+	let
+		typedStmtExpr = typecheckStmtExpr stmtExpr localVars classes
+		typeOfStmtExpr = getTypeFromStmtExpr typedStmtExpr
+	in
+		TypedExpr(StmtExprExpr(typedStmtExpr),typeOfStmtExpr)))
 
-
-typecheckStmt :: Stmt -> [(String, Type)] -> [Class] -> Stmt
+typecheckStmt :: Stmt -> [(Type, String)] -> [Class] -> Stmt
 typecheckStmt(Block((LocalVarDecl(localVarType, localVarName)) : stmts)) = (\localVars -> (\classes ->
 	let
 		typedFirstStmt = typecheckStmt (LocalVarDecl(localVarType,localVarName)) localVars classes
 		oldLocalVars = removeLocalVar localVarName localVars
 		newLocalVars = (localVarType, localVarName) : oldLocalVars
 		typedBlockOfStmts = typecheckStmt (Block(stmts)) newLocalVars classes
+		typedRestOfStmts = (\(TypedStmt(Block(typedStmts),_)) -> typedStmts) typedBlockOfStmts
 		typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
 	in
-		TypedStmt(Block([typedFirstStmt,typedBlockOfStmts]),typeOfBlockOfStmts)))
+		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlockOfStmts)))
 typecheckStmt(Block(firstStmt : stmts)) = (\localVars -> (\classes ->
 	let
 		typedFirstStmt = typecheckStmt firstStmt localVars classes
 		typeOfFirstStmt = getTypeFromStmt typedFirstStmt
 		typedBlockOfStmts = typecheckStmt (Block(stmts)) localVars classes
+		typedRestOfStmts = (\(TypedStmt(Block(typedStmts),_)) -> typedStmts) typedBlockOfStmts
 		typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
 		typeOfBlock = typeUpperBound typeOfFirstStmt typeOfBlockOfStmts
 	in
-		TypedStmt(Block([typedFirstStmt,typedBlockOfStmts]),typeOfBlock)))
+		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlock)))
 typecheckStmt(Block([])) = (\_ -> (\_ -> TypedStmt(Block([]),"void")))
 typecheckStmt(Return(expr)) = (\localVars -> (\classes ->
 	let
@@ -107,8 +115,16 @@ typecheckStmt(If(conditionExpr, stmtTrue, Just stmtFalse)) = (\localVars -> (\cl
 		upperBoundStmtType = typeUpperBound stmtTrueType stmtFalseType
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)))
+typecheckStmt(StmtExprStmt(stmtExpr)) =
+	(\localVars -> (\classes ->
+	let
+		typedStmtExpr = typecheckStmtExpr stmtExpr localVars classes
+		typeOfStmtExpr = getTypeFromStmtExpr typedStmtExpr
+	in
+		TypedStmt(StmtExprStmt(typedStmtExpr),"void")))
 
-typecheckStmtExpr :: StmtExpr -> [(String, Type)] -> [Class] -> StmtExpr
+
+typecheckStmtExpr :: StmtExpr -> [(Type, String)] -> [Class] -> StmtExpr
 typecheckStmtExpr(Assign(expA, expB)) = (\localVars -> (\classes ->
 	let
 		typedExprA = typecheckExpr expA localVars classes
@@ -133,10 +149,10 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		typedArguments = map (\arg -> typecheckExpr arg localVars classes) arguments
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
-		instanceClass = getClass instanceType classes
-		methodDecl = getMethodDecl methodName ((\(Just (Class(_,_,x))) -> x)(instanceClass))
-		methodType = (\(Just (MethodDecl(typeName,_,_,_))) -> typeName) methodDecl
-		methodArgs = (\(Just (MethodDecl(_,_,args,_))) -> args) methodDecl
+		instanceClass = getMaybeClass instanceType classes
+		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ deMaybe instanceClass
+		methodType = getTypeFromMethodDecl $ deMaybe methodDecl
+		methodArgs = getArgsFromMethodDecl $ deMaybe methodDecl
 		declArgTypes = map (\(argType, argName) -> argType) methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
 		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
@@ -173,7 +189,7 @@ typecheckMethod(MethodDecl(methodType, methodName, arguments, stmt)) = (\thisTyp
 						else
 							error "Method return type does not match to the given type"
 				else
-					error $ "One or multiple arguments of method" ++ methodName ++ " in class " ++ thisType ++ " name an invalid type"
+					error $ "One or multiple arguments of method " ++ methodName ++ " in class " ++ thisType ++ " name an invalid type"
 		else
 			error $ "Invalid return type " ++ methodType ++ " of method " ++ methodName ++ " in class " ++ thisType))
 
@@ -219,38 +235,59 @@ getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("&&") = (\"bool" -> (\"bool" -> "bool"))
 getTypeOfBinary("||") = (\"bool" -> (\"bool" -> "bool"))
 
-getClass :: Type -> [Class] -> Maybe Class
-getClass _ [] = Nothing
-getClass className (Class(name, fieldDecl, methodDecl) : classes)
+getMaybeClass :: Type -> [Class] -> Maybe Class
+getMaybeClass _ [] = Nothing
+getMaybeClass className (Class(name, fieldDecl, methodDecl) : classes)
 	| className == name = Just (Class(name, fieldDecl, methodDecl))
-	| otherwise = getClass className classes
+	| otherwise = getMaybeClass className classes
 
-getFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
-getFieldDecl _ [] = Nothing
-getFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
+getMaybeFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
+getMaybeFieldDecl _ [] = Nothing
+getMaybeFieldDecl name (FieldDecl(fieldType,fieldName) : fieldDecls)
 	| fieldName == name = Just (FieldDecl(fieldType,fieldName))
-	| otherwise = getFieldDecl name fieldDecls
+	| otherwise = getMaybeFieldDecl name fieldDecls
 
-getMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
-getMethodDecl _ [] = Nothing
-getMethodDecl name (MethodDecl(methodType,methodName,methodArgs,methodStmts) : methodDecls)
+getMaybeMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
+getMaybeMethodDecl _ [] = Nothing
+getMaybeMethodDecl name (MethodDecl(methodType,methodName,methodArgs,methodStmts) : methodDecls)
 	| methodName == name = Just (MethodDecl(methodType,methodName,methodArgs,methodStmts))
-	| otherwise = getMethodDecl name methodDecls
+	| otherwise = getMaybeMethodDecl name methodDecls
 
-getLocalVar :: String -> [(String, Type)] -> Maybe (String, Type)
-getLocalVar _ [] = Nothing
-getLocalVar name ((varName, varType) : localVars)
-	| varName == name = Just (varName, varType)
-	| otherwise = getLocalVar name localVars
+getMaybeLocalVar :: String -> [(Type, String)] -> Maybe (Type, String)
+getMaybeLocalVar _ [] = Nothing
+getMaybeLocalVar name ((varType, varName) : localVars)
+	| varName == name = Just (varType, varName)
+	| otherwise = getMaybeLocalVar name localVars
+	
+deMaybe :: Maybe a -> a
+deMaybe(Just(a)) = a
+	
+getTypeFromLocalVar :: (Type, String) -> Type
+getTypeFromLocalVar(typeName,_) = typeName
+
+getTypeFromFieldDecl :: FieldDecl -> Type
+getTypeFromFieldDecl(FieldDecl(typeName,_)) = typeName
+
+getFieldDeclsFromClass :: Class -> [FieldDecl]
+getFieldDeclsFromClass(Class(_,fieldDecls,_)) = fieldDecls
+
+getMethodDeclsFromClass :: Class -> [MethodDecl]
+getMethodDeclsFromClass(Class(_,_,methodDecls)) = methodDecls
+
+getTypeFromMethodDecl :: MethodDecl -> Type
+getTypeFromMethodDecl(MethodDecl(typeName,_,_,_)) = typeName
+
+getArgsFromMethodDecl :: MethodDecl -> [(Type,String)]
+getArgsFromMethodDecl(MethodDecl(_,_,args,_)) = args
 
 isSubtypeOf :: Type -> Type -> Bool
 isSubtypeOf x y = (typeUpperBound x y) == y
 
-removeLocalVar :: String -> [(String, Type)] -> [(String, Type)]
+removeLocalVar :: String -> [(Type, String)] -> [(Type, String)]
 removeLocalVar(varName) = (\varList ->
-	foldr (\(aVarName,aVarType) list -> 
+	foldr (\(aVarType,aVarName) list -> 
 		if aVarName == varName then list
-		else (aVarName,aVarType) : list) [] varList)
+		else (aVarType,aVarName) : list) [] varList)
 
 typeExists :: Type -> [Class] -> Bool
 typeExists "bool" _ = True
