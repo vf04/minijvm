@@ -25,8 +25,8 @@ typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 
 typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 	let
-		instanceExpr = (typecheckExpr(expr) localVars classes)
-		instanceType = getTypeFromExpr(instanceExpr)
+		instanceExpr = typecheckExpr expr localVars classes
+		instanceType = getTypeFromExpr instanceExpr
 		instanceClass = getMaybeClass instanceType classes
 		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ deMaybe instanceClass
 		instVarType = getTypeFromFieldDecl $ deMaybe instVarFieldDecl
@@ -36,8 +36,9 @@ typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 
 typecheckExpr(Unary(operator, expr)) = 
 	(\ localVars -> (\ classes -> 
-	let typedExpr = (typecheckExpr(expr))(localVars)(classes)
+	let typedExpr = typecheckExpr expr localVars classes
 	in TypedExpr(Unary(operator,typedExpr),getTypeFromExpr(typedExpr))))
+
 typecheckExpr(Binary(operator, expA, expB)) = 
 	(\ localVars -> (\ classes -> 
 	let
@@ -47,6 +48,7 @@ typecheckExpr(Binary(operator, expA, expB)) =
 		typeB = getTypeFromExpr typedExprB
 		typeOfBinary = getTypeOfBinary operator typeA typeB
 	in TypedExpr(Binary(operator,typedExprA,typedExprB),typeOfBinary)))
+
 typecheckExpr(Integer(i)) = (\ _ -> (\ _ -> TypedExpr(Integer(i),"int")))
 typecheckExpr(Bool(b)) = (\ _ -> (\ _ -> TypedExpr(Bool(b),"bool")))
 typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),"char")))
@@ -60,6 +62,7 @@ typecheckExpr(StmtExprExpr(stmtExpr)) =
 	in
 		TypedExpr(StmtExprExpr(typedStmtExpr),typeOfStmtExpr)))
 
+
 typecheckStmt :: Stmt -> [(Type, String)] -> [Class] -> Stmt
 typecheckStmt(Block((LocalVarDecl(localVarType, localVarName)) : stmts)) = (\localVars -> (\classes ->
 	let
@@ -71,6 +74,7 @@ typecheckStmt(Block((LocalVarDecl(localVarType, localVarName)) : stmts)) = (\loc
 		typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
 	in
 		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlockOfStmts)))
+
 typecheckStmt(Block(firstStmt : stmts)) = (\localVars -> (\classes ->
 	let
 		typedFirstStmt = typecheckStmt firstStmt localVars classes
@@ -81,13 +85,16 @@ typecheckStmt(Block(firstStmt : stmts)) = (\localVars -> (\classes ->
 		typeOfBlock = typeUpperBound typeOfFirstStmt typeOfBlockOfStmts
 	in
 		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlock)))
+
 typecheckStmt(Block([])) = (\_ -> (\_ -> TypedStmt(Block([]),"void")))
+
 typecheckStmt(Return(expr)) = (\localVars -> (\classes ->
 	let
 		typedExpr = typecheckExpr expr localVars classes
 		exprType = getTypeFromExpr typedExpr
 	in
 		TypedStmt(Return(typedExpr),exprType)))
+
 typecheckStmt(While(conditionExpr, stmt)) = (\localVars -> (\classes ->
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
@@ -95,8 +102,10 @@ typecheckStmt(While(conditionExpr, stmt)) = (\localVars -> (\classes ->
 		stmtType = getTypeFromStmt typedStmt
 	in
 		TypedStmt(While(typedConditionExpr, typedStmt), stmtType)))
+
 typecheckStmt(LocalVarDecl(varType, varName)) = (\localVars -> (\classes ->
 	TypedStmt(LocalVarDecl(varType, varName),"void")))
+
 typecheckStmt(If(conditionExpr, stmtTrue, Nothing)) = (\localVars -> (\classes ->
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
@@ -105,6 +114,7 @@ typecheckStmt(If(conditionExpr, stmtTrue, Nothing)) = (\localVars -> (\classes -
 		upperBoundStmtType = typeUpperBound stmtTrueType "void"
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, Nothing),upperBoundStmtType)))
+
 typecheckStmt(If(conditionExpr, stmtTrue, Just stmtFalse)) = (\localVars -> (\classes ->
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
@@ -115,11 +125,10 @@ typecheckStmt(If(conditionExpr, stmtTrue, Just stmtFalse)) = (\localVars -> (\cl
 		upperBoundStmtType = typeUpperBound stmtTrueType stmtFalseType
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)))
-typecheckStmt(StmtExprStmt(stmtExpr)) =
-	(\localVars -> (\classes ->
+
+typecheckStmt(StmtExprStmt(stmtExpr)) =	(\localVars -> (\classes ->
 	let
 		typedStmtExpr = typecheckStmtExpr stmtExpr localVars classes
-		typeOfStmtExpr = getTypeFromStmtExpr typedStmtExpr
 	in
 		TypedStmt(StmtExprStmt(typedStmtExpr),"void")))
 
@@ -134,7 +143,7 @@ typecheckStmtExpr(Assign(expA, expB)) = (\localVars -> (\classes ->
 	in
 		if isSubtypeOf typeB typeA
 		then
-			(TypedStmtExpr(Assign(typedExprA,typedExprB),typeA))
+			TypedStmtExpr(Assign(typedExprA,typedExprB),typeA)
 		else
 			error "assign type mismatch"))
 
@@ -142,7 +151,7 @@ typecheckStmtExpr(New(newType, newExpressions)) = (\localVars -> (\classes ->
 	let
 		typedNewExpressions = map (\expr -> typecheckExpr expr localVars classes) newExpressions
 	in
-		(TypedStmtExpr(New(newType,typedNewExpressions),newType))))
+		TypedStmtExpr(New(newType,typedNewExpressions),newType)))
 
 typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars -> (\classes ->
 	let
@@ -159,7 +168,7 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 	in
 		if argTypesMatch
 		then
-			(TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType))
+			TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType)
 		else
 			error "argument type mismatch in method call"))
 
@@ -179,8 +188,8 @@ typecheckMethod(MethodDecl(methodType, methodName, arguments, stmt)) = (\thisTyp
 				if argumentTypesAreValid
 				then
 					let
-						localVars = map (\(typeName,argName) -> (argName,typeName)) arguments
-						typedStmt = typecheckStmt stmt (("this",thisType) : localVars) classes
+						localVars = ((thisType,"this") : arguments)
+						typedStmt = typecheckStmt stmt localVars classes
 						actualMehtodType = getTypeFromStmt typedStmt
 					in
 						if isSubtypeOf actualMehtodType methodType
@@ -268,6 +277,9 @@ getTypeFromLocalVar(typeName,_) = typeName
 getTypeFromFieldDecl :: FieldDecl -> Type
 getTypeFromFieldDecl(FieldDecl(typeName,_)) = typeName
 
+getTypeFromClass :: Class -> Type
+getTypeFromClass(Class(className,_,_)) = className
+
 getFieldDeclsFromClass :: Class -> [FieldDecl]
 getFieldDeclsFromClass(Class(_,fieldDecls,_)) = fieldDecls
 
@@ -297,5 +309,5 @@ typeExists "null" _ = True
 typeExists "void" _ = True
 typeExists "String" _ = True
 typeExists "Object" _ = True
-typeExists typeName classes = elem typeName $ map (\(Class(className,_,_)) -> className) classes
+typeExists typeName classes = elem typeName $ map getTypeFromClass classes
 
