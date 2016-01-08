@@ -1,7 +1,7 @@
 {
 module JavaParser (parse) where
 import AbsSyn
-import JavaLexer.JavaLexer
+import JavaLexer
 }
 
 %name parse
@@ -16,6 +16,7 @@ import JavaLexer.JavaLexer
        CLASS { CLASS}
        IDENTIFIER { IDENTIFIER $$}
        INTLITERAL { INTLITERAL $$}
+       CHARLITERAL { CHARLITERAL}
        INCREMENT { INCREMENT}
        CATCH { CATCH}
        CONTINUE { CONTINUE}
@@ -23,7 +24,8 @@ import JavaLexer.JavaLexer
        DO { DO}
        ELSE { ELSE}
        IF { IF}
-       FoR { FOR}
+       For { FOR}
+       
 
 %%
 
