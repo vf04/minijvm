@@ -1,3 +1,5 @@
+module SemantikCheck where
+
 import AbsSyn
 
 -- Ausdruck/Statement, Lokale Variablen, Sichtbare Klassen -> Getypter Ausdruck/Statement
