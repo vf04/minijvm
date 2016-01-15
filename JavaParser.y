@@ -4,7 +4,6 @@ import AbsSyn
 import JavaLexer
 }
 
-%name jparse
 %name name
 %tokentype { Token }
 %error { parseError }
@@ -100,11 +99,11 @@ import JavaLexer
 
 %%
 
-name             : qualifiedname { }
-   | simplename { }
+name             : qualifiedname { $1 }
+   | simplename { $1 }
 
 
-qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, $3) }
+qualifiedname    : name DOT IDENTIFIER { QualifiedName($1, $3) }
 
 simplename       : IDENTIFIER { $1 }
 

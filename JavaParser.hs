@@ -7,177 +7,169 @@ import Control.Monad (ap)
 
 -- parser produced by Happy Version 1.19.5
 
-data HappyAbsSyn t5 t6 t7
+data HappyAbsSyn t4 t5 t6
 	= HappyTerminal (Token)
 	| HappyErrorToken Int
+	| HappyAbsSyn4 t4
 	| HappyAbsSyn5 t5
 	| HappyAbsSyn6 t6
-	| HappyAbsSyn7 t7
 
-action_0 (44) = happyShift action_6
-action_0 (5) = happyGoto action_8
+action_0 (43) = happyShift action_5
+action_0 (4) = happyGoto action_6
+action_0 (5) = happyGoto action_3
 action_0 (6) = happyGoto action_4
-action_0 (7) = happyGoto action_5
 action_0 _ = happyFail
 
-action_1 (44) = happyShift action_6
-action_1 (5) = happyGoto action_7
+action_1 (43) = happyShift action_5
+action_1 (4) = happyGoto action_2
+action_1 (5) = happyGoto action_3
 action_1 (6) = happyGoto action_4
-action_1 (7) = happyGoto action_5
 action_1 _ = happyFail
 
-action_2 (44) = happyShift action_6
-action_2 (5) = happyGoto action_3
-action_2 (6) = happyGoto action_4
-action_2 (7) = happyGoto action_5
+action_2 (74) = happyShift action_7
 action_2 _ = happyFail
 
-action_3 (75) = happyShift action_9
-action_3 _ = happyFail
+action_3 _ = happyReduce_1
 
 action_4 _ = happyReduce_2
 
-action_5 _ = happyReduce_3
+action_5 _ = happyReduce_4
 
-action_6 _ = happyReduce_5
+action_6 (74) = happyShift action_7
+action_6 (93) = happyAccept
+action_6 _ = happyFail
 
-action_7 (75) = happyShift action_9
-action_7 (94) = happyAccept
+action_7 (43) = happyShift action_8
 action_7 _ = happyFail
 
-action_8 (75) = happyShift action_9
-action_8 (94) = happyAccept
-action_8 _ = happyFail
+action_8 _ = happyReduce_3
 
-action_9 (44) = happyShift action_10
-action_9 _ = happyFail
-
-action_10 _ = happyReduce_4
-
-happyReduce_2 = happySpecReduce_1  5 happyReduction_2
-happyReduction_2 _
-	 =  HappyAbsSyn5
-		 (
-	)
-
-happyReduce_3 = happySpecReduce_1  5 happyReduction_3
-happyReduction_3 _
-	 =  HappyAbsSyn5
-		 (
-	)
-
-happyReduce_4 = happySpecReduce_3  6 happyReduction_4
-happyReduction_4 (HappyTerminal (IDENTIFIER happy_var_3))
-	_
-	(HappyAbsSyn5  happy_var_1)
-	 =  HappyAbsSyn6
-		 (QualifiedName(happy_var_1, happy_var_3)
-	)
-happyReduction_4 _ _ _  = notHappyAtAll 
-
-happyReduce_5 = happySpecReduce_1  7 happyReduction_5
-happyReduction_5 (HappyTerminal (IDENTIFIER happy_var_1))
-	 =  HappyAbsSyn7
+happyReduce_1 = happySpecReduce_1  4 happyReduction_1
+happyReduction_1 (HappyAbsSyn5  happy_var_1)
+	 =  HappyAbsSyn4
 		 (happy_var_1
 	)
-happyReduction_5 _  = notHappyAtAll 
+happyReduction_1 _  = notHappyAtAll 
+
+happyReduce_2 = happySpecReduce_1  4 happyReduction_2
+happyReduction_2 (HappyAbsSyn6  happy_var_1)
+	 =  HappyAbsSyn4
+		 (happy_var_1
+	)
+happyReduction_2 _  = notHappyAtAll 
+
+happyReduce_3 = happySpecReduce_3  5 happyReduction_3
+happyReduction_3 (HappyTerminal (IDENTIFIER happy_var_3))
+	_
+	(HappyAbsSyn4  happy_var_1)
+	 =  HappyAbsSyn5
+		 (QualifiedName(happy_var_1, happy_var_3)
+	)
+happyReduction_3 _ _ _  = notHappyAtAll 
+
+happyReduce_4 = happySpecReduce_1  6 happyReduction_4
+happyReduction_4 (HappyTerminal (IDENTIFIER happy_var_1))
+	 =  HappyAbsSyn6
+		 (happy_var_1
+	)
+happyReduction_4 _  = notHappyAtAll 
 
 happyNewToken action sts stk [] =
-	action 94 94 notHappyAtAll (HappyState action) sts stk []
+	action 93 93 notHappyAtAll (HappyState action) sts stk []
 
 happyNewToken action sts stk (tk:tks) =
 	let cont i = action i i tk (HappyState action) sts stk tks in
 	case tk of {
-	ABSTRACT -> cont 8;
-	BOOLEAN -> cont 9;
-	BREAK -> cont 10;
-	CASE -> cont 11;
-	CATCH -> cont 12;
-	CHAR -> cont 13;
-	CLASS -> cont 14;
-	CONTINUE -> cont 15;
-	DEFAULT -> cont 16;
-	DO -> cont 17;
-	ELSE -> cont 18;
-	EXTENDS -> cont 19;
-	FINALLY -> cont 20;
-	FOR -> cont 21;
-	IF -> cont 22;
-	INSTANCEOF -> cont 23;
-	INT -> cont 24;
-	NEW -> cont 25;
-	PRIVATE -> cont 26;
-	PROTECTED -> cont 27;
-	PUBLIC -> cont 28;
-	RETURN -> cont 29;
-	STATIC -> cont 30;
-	SUPER -> cont 31;
-	SWITCH -> cont 32;
-	THIS -> cont 33;
-	THROW -> cont 34;
-	THROWS -> cont 35;
-	TRY -> cont 36;
-	VOID -> cont 37;
-	WHILE -> cont 38;
-	INTLITERAL happy_dollar_dollar -> cont 39;
-	BOOLLITERAL happy_dollar_dollar -> cont 40;
-	JNULL -> cont 41;
-	CHARLITERAL happy_dollar_dollar -> cont 42;
-	STRINGLITERAL happy_dollar_dollar -> cont 43;
-	IDENTIFIER happy_dollar_dollar -> cont 44;
-	EQUAL -> cont 45;
-	LESSEQUAL -> cont 46;
-	GREATEREQUAL -> cont 47;
-	NOTEQUAL -> cont 48;
-	LOGICALOR -> cont 49;
-	LOGICALAND -> cont 50;
-	INCREMENT -> cont 51;
-	DECREMENT -> cont 52;
-	SHIFTLEFT -> cont 53;
-	SHIFTRIGHT -> cont 54;
-	UNSIGNEDSHIFTRIGHT -> cont 55;
-	SIGNEDSHIFTRIGHT -> cont 56;
-	PLUSEQUAL -> cont 57;
-	MINUSEQUAL -> cont 58;
-	TIMESEQUAL -> cont 59;
-	DIVIDEEQUAL -> cont 60;
-	ANDEQUAL -> cont 61;
-	OREQUAL -> cont 62;
-	XOREQUAL -> cont 63;
-	MODULOEQUAL -> cont 64;
-	SHIFTLEFTEQUAL -> cont 65;
-	SIGNEDSHIFTRIGHTEQUAL -> cont 66;
-	UNSIGNEDSHIFTRIGHTEQUAL -> cont 67;
-	LBRACE -> cont 68;
-	RBRACE -> cont 69;
-	LBRACKET -> cont 70;
-	RBRACKET -> cont 71;
-	LSQBRACKET -> cont 72;
-	RSQBRACKET -> cont 73;
-	SEMICOLON -> cont 74;
-	DOT -> cont 75;
-	ASSIGN -> cont 76;
-	LESS -> cont 77;
-	GREATER -> cont 78;
-	EXCLMARK -> cont 79;
-	TILDE -> cont 80;
-	QUESMARK -> cont 81;
-	COLON -> cont 82;
-	PLUS -> cont 83;
-	MINUS -> cont 84;
-	MUL -> cont 85;
-	DIV -> cont 86;
-	MOD -> cont 87;
-	AND -> cont 88;
-	OR -> cont 89;
-	XOR -> cont 90;
-	SHARP -> cont 91;
-	ARROW -> cont 92;
-	COMMA -> cont 93;
+	ABSTRACT -> cont 7;
+	BOOLEAN -> cont 8;
+	BREAK -> cont 9;
+	CASE -> cont 10;
+	CATCH -> cont 11;
+	CHAR -> cont 12;
+	CLASS -> cont 13;
+	CONTINUE -> cont 14;
+	DEFAULT -> cont 15;
+	DO -> cont 16;
+	ELSE -> cont 17;
+	EXTENDS -> cont 18;
+	FINALLY -> cont 19;
+	FOR -> cont 20;
+	IF -> cont 21;
+	INSTANCEOF -> cont 22;
+	INT -> cont 23;
+	NEW -> cont 24;
+	PRIVATE -> cont 25;
+	PROTECTED -> cont 26;
+	PUBLIC -> cont 27;
+	RETURN -> cont 28;
+	STATIC -> cont 29;
+	SUPER -> cont 30;
+	SWITCH -> cont 31;
+	THIS -> cont 32;
+	THROW -> cont 33;
+	THROWS -> cont 34;
+	TRY -> cont 35;
+	VOID -> cont 36;
+	WHILE -> cont 37;
+	INTLITERAL happy_dollar_dollar -> cont 38;
+	BOOLLITERAL happy_dollar_dollar -> cont 39;
+	JNULL -> cont 40;
+	CHARLITERAL happy_dollar_dollar -> cont 41;
+	STRINGLITERAL happy_dollar_dollar -> cont 42;
+	IDENTIFIER happy_dollar_dollar -> cont 43;
+	EQUAL -> cont 44;
+	LESSEQUAL -> cont 45;
+	GREATEREQUAL -> cont 46;
+	NOTEQUAL -> cont 47;
+	LOGICALOR -> cont 48;
+	LOGICALAND -> cont 49;
+	INCREMENT -> cont 50;
+	DECREMENT -> cont 51;
+	SHIFTLEFT -> cont 52;
+	SHIFTRIGHT -> cont 53;
+	UNSIGNEDSHIFTRIGHT -> cont 54;
+	SIGNEDSHIFTRIGHT -> cont 55;
+	PLUSEQUAL -> cont 56;
+	MINUSEQUAL -> cont 57;
+	TIMESEQUAL -> cont 58;
+	DIVIDEEQUAL -> cont 59;
+	ANDEQUAL -> cont 60;
+	OREQUAL -> cont 61;
+	XOREQUAL -> cont 62;
+	MODULOEQUAL -> cont 63;
+	SHIFTLEFTEQUAL -> cont 64;
+	SIGNEDSHIFTRIGHTEQUAL -> cont 65;
+	UNSIGNEDSHIFTRIGHTEQUAL -> cont 66;
+	LBRACE -> cont 67;
+	RBRACE -> cont 68;
+	LBRACKET -> cont 69;
+	RBRACKET -> cont 70;
+	LSQBRACKET -> cont 71;
+	RSQBRACKET -> cont 72;
+	SEMICOLON -> cont 73;
+	DOT -> cont 74;
+	ASSIGN -> cont 75;
+	LESS -> cont 76;
+	GREATER -> cont 77;
+	EXCLMARK -> cont 78;
+	TILDE -> cont 79;
+	QUESMARK -> cont 80;
+	COLON -> cont 81;
+	PLUS -> cont 82;
+	MINUS -> cont 83;
+	MUL -> cont 84;
+	DIV -> cont 85;
+	MOD -> cont 86;
+	AND -> cont 87;
+	OR -> cont 88;
+	XOR -> cont 89;
+	SHARP -> cont 90;
+	ARROW -> cont 91;
+	COMMA -> cont 92;
 	_ -> happyError' (tk:tks)
 	}
 
-happyError_ 94 tk tks = happyError' tks
+happyError_ 93 tk tks = happyError' tks
 happyError_ _ tk tks = happyError' (tk:tks)
 
 newtype HappyIdentity a = HappyIdentity a
@@ -204,11 +196,8 @@ happyReturn1 = \a tks -> (return) a
 happyError' :: () => [(Token)] -> HappyIdentity a
 happyError' = HappyIdentity . parseError
 
-jparse tks = happyRunIdentity happySomeParser where
-  happySomeParser = happyThen (happyParse action_0 tks) (\x -> case x of {HappyAbsSyn5 z -> happyReturn z; _other -> notHappyAtAll })
-
 name tks = happyRunIdentity happySomeParser where
-  happySomeParser = happyThen (happyParse action_1 tks) (\x -> case x of {HappyAbsSyn5 z -> happyReturn z; _other -> notHappyAtAll })
+  happySomeParser = happyThen (happyParse action_0 tks) (\x -> case x of {HappyAbsSyn4 z -> happyReturn z; _other -> notHappyAtAll })
 
 happySeq = happyDontSeq
 
