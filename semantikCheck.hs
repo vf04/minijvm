@@ -11,15 +11,15 @@ typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 		then
 			let
 				thisVar = getMaybeLocalVar "this" localVars
-				thisClassType = getTypeFromLocalVar $ deMaybe thisVar
+				thisClassType = getTypeFromLocalVar $ fromJustOrError thisVar "'this' var was not found. Cannot evaluate field vars."
 				thisClass = getMaybeClass thisClassType classes
-				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ deMaybe thisClass
-				fieldVarType = getTypeFromFieldDecl $ deMaybe fieldVarDecl
+				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ fromJustOrError thisClass $ "Class " ++ thisClassType ++ " was not found."
+				fieldVarType = getTypeFromFieldDecl $ fromJustOrError fieldVarDecl $ "var '" ++ varName ++ "' is neither a local var nor a field var in " ++ thisClassType
 			in
 			TypedExpr(LocalOrFieldVar(varName),fieldVarType)
 		else
 			let
-				varType = getTypeFromLocalVar $ deMaybe localVar
+				varType = getTypeFromLocalVar $ fromJustOrError localVar $ "could not retrieve var type from local var " ++ varName
 			in
 				TypedExpr(LocalOrFieldVar(varName),varType)))
 
@@ -28,8 +28,8 @@ typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 		instanceExpr = typecheckExpr expr localVars classes
 		instanceType = getTypeFromExpr instanceExpr
 		instanceClass = getMaybeClass instanceType classes
-		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ deMaybe instanceClass
-		instVarType = getTypeFromFieldDecl $ deMaybe instVarFieldDecl
+		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ fromJustOrError instanceClass $ "class " ++ instanceType ++ " was not found when checking inst var " ++ instVarName
+		instVarType = getTypeFromFieldDecl $ fromJustOrError instVarFieldDecl $ "field declaration " ++ instVarName ++ " was not found in class " ++ instanceType
 	in
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)))
 --TODO: Schönere Fehlerausgaben, falls Klasse oder Feld nicht gefunden
@@ -159,9 +159,9 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
 		instanceClass = getMaybeClass instanceType classes
-		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ deMaybe instanceClass
-		methodType = getTypeFromMethodDecl $ deMaybe methodDecl
-		methodArgs = getArgsFromMethodDecl $ deMaybe methodDecl
+		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ fromJustOrError instanceClass $ "could not find class " ++ instanceType ++ " when calling " ++ methodName
+		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ instanceType
+		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ instanceType
 		declArgTypes = map (\(argType, argName) -> argType) methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
 		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
@@ -170,7 +170,7 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		then
 			TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType)
 		else
-			error "argument type mismatch in method call"))
+			error $ "argument type mismatch when calling " ++ methodName ++ " in class " ++ instanceType))
 
 typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
 typecheckFieldDecls fieldDecls classes = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
@@ -196,11 +196,11 @@ typecheckMethod(MethodDecl(methodType, methodName, arguments, stmt)) = (\thisTyp
 						then
 							MethodDecl(methodType, methodName, arguments, typedStmt)
 						else
-							error "Method return type does not match to the given type"
+							error $ "evaluated return type " ++ actualMehtodType ++ " does not match to the given return type " ++ methodType
 				else
 					error $ "One or multiple arguments of method " ++ methodName ++ " in class " ++ thisType ++ " name an invalid type"
 		else
-			error $ "Invalid return type " ++ methodType ++ " of method " ++ methodName ++ " in class " ++ thisType))
+			error $ "return type " ++ methodType ++ " of method " ++ methodName ++ " in class " ++ thisType ++ "does not exist"))
 
 typecheckClass :: Class -> [Class] -> Class
 typecheckClass(Class(className, fieldDecls, methodDecls)) = (\classes ->
@@ -268,8 +268,9 @@ getMaybeLocalVar name ((varType, varName) : localVars)
 	| varName == name = Just (varType, varName)
 	| otherwise = getMaybeLocalVar name localVars
 	
-deMaybe :: Maybe a -> a
-deMaybe(Just(a)) = a
+fromJustOrError :: Maybe a -> String -> a
+fromJustOrError (Just(a)) _ = a
+fromJustOrError Nothing errorString = error errorString
 	
 getTypeFromLocalVar :: (Type, String) -> Type
 getTypeFromLocalVar(typeName,_) = typeName
