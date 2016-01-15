@@ -1,5 +1,5 @@
 {
-module JavaParser (parse) where
+module JavaParser (jparse) where
 import AbsSyn
 import JavaLexer
 }
@@ -110,7 +110,6 @@ simplename       : IDENTIFIER { SimpleName($1) }
 
 {
 
-jparse :: String -> Name
 jparse = name . alexScanTokens
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
