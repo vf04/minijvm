@@ -14,7 +14,7 @@ data Stmt = Block([Stmt])
           | LocalVarDecl(Type, String) 
           | If(Expr, Stmt , Maybe Stmt) 
           | StmtExprStmt(StmtExpr) 
-		  | TypedStmt(Stmt, Type)
+      | TypedStmt(Stmt, Type)
           deriving (Show)
 
 getTypeFromStmt (TypedStmt(_, typ)) = typ
@@ -47,3 +47,7 @@ getTypeFromExpr (TypedExpr(_, typ)) = typ
  
 type Prg = [Class]
 
+data Name =QualifiedName(Name, Identifier)
+  | SimpleName(Identifier)
+  deriving (Show)
+data Identifier = Identifier(String) deriving(Show)
