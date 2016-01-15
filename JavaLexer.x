@@ -34,8 +34,10 @@ tokens :-
   \<    { \s -> LESS }
   \>    { \s -> GREATER }
   \;    { \s -> SEMICOLON }
-  \,    { \s -> COLON }
+  \,    { \s -> COMMA }
   \.    { \s -> DOT }
+  \:    { \s -> COLON }
+
   \=    { \s -> ASSIGN }
   \#    { \s -> SHARP }
 
@@ -163,6 +165,7 @@ data Token
      | XOR 
      | SHARP
      | ARROW
+     | COMMA
      deriving(Eq,Show)
 
 

@@ -94,6 +94,7 @@ import JavaLexer
      XOR { XOR}
      SHARP { SHARP}
      ARROW { ARROW}
+     COMMA { COMMA}
 
 
 %%
@@ -108,7 +109,7 @@ name             : qualifiedname { }
 
 typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { }
+qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, $3) }
 
 simplename       : IDENTIFIER { $1 }
 
@@ -376,6 +377,8 @@ multiplicativeexpression : unaryexpression { }
 
 {
 
+parse :: String <- Name
+parse = name . AlexScanTokens
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
