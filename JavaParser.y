@@ -105,7 +105,7 @@ name             : qualifiedname { $1 }
 
 qualifiedname    : name DOT IDENTIFIER { QualifiedName($1, $3) }
 
-simplename       : IDENTIFIER { $1 }
+simplename       : IDENTIFIER { SimpleName($1) }
 
 
 {
