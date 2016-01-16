@@ -47,7 +47,10 @@ getTypeFromExpr (TypedExpr(_, typ)) = typ
  
 type Prg = [Class]
 
-data Name =QualifiedName(Name, String)
-  | SimpleName(String)
+data Name = QualifiedName(Name, Identifier)
+  | SimpleName(Identifier)
   deriving (Show)
+
+data Identifier = Identifier(String)
+  deriving(Show)
 

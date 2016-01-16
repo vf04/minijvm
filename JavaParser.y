@@ -99,22 +99,22 @@ import JavaLexer
 
 %%
 
-compilationunit  : typedeclarations { $1 }
+-- compilationunit  : typedeclarations { $1 }
 
-typedeclarations : typedeclaration { [$1] }
-		 | typedeclarations typedeclaration { $1 ++ [$2] }
+-- typedeclarations : typedeclaration { [$1] }
+		 -- | typedeclarations typedeclaration { $1 ++ [$2] }
 
 name             : qualifiedname { $1 }
 		 | simplename { $1 }
 
-typedeclaration  : classdeclaration { $1 }
+-- typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, $3) }
+qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
 
-simplename       : IDENTIFIER { SimpleName($1) }
+simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class(TC($2, []), [], []) }
-                 | modifiers CLASS IDENTIFIER classbody {Class(TC($3, []), [], []) }
+-- classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), []), [], []) }
+--                 | modifiers CLASS IDENTIFIER classbody {Class(Identifier($3, []), [], []) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
 		 | LBRACKET classbodydeclarations  RBRACKET { $2 }
@@ -376,9 +376,7 @@ multiplicativeexpression : unaryexpression { }
 
 
 {
-
-parse :: String <- Name
-parse = name . AlexScanTokens
+parse = name . alexScanTokens
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
