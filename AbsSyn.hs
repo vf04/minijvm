@@ -4,7 +4,7 @@ type Type = String
 
 data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
 
-data FieldDecl = FieldDecl(Type, String) deriving (Show)
+data FieldDecl = FieldDecl(Type, [VariableDeclarator]) deriving (Show)
 
 data MethodDecl = MethodDecl(Type, String,[(Type,String)], Stmt) deriving (Show)
 
@@ -51,8 +51,15 @@ data Name = QualifiedName(Name, Identifier)
   | SimpleName(Identifier)
   deriving (Show)
 
-data Identifier = Identifier(Type)
+data Identifier = Identifier(String)
   deriving(Show)
 
 data VariableDeclarator = VariableDeclarator(VariableDeclaratorId) deriving(Show)
 data VariableDeclaratorId = VariableDeclaratorId(Identifier) deriving(Show)
+
+data Modifier = Public()
+  | Protected()
+  | Private()
+  | Static()
+  deriving(Show)
+

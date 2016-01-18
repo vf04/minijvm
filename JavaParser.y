@@ -144,7 +144,7 @@ classmemberdeclaration : fielddeclaration { $1 }
 constructordeclaration : constructordeclarator constructorbody { }
 		 |  modifiers constructordeclarator constructorbody { }
 
-fielddeclaration : type variabledeclarators  SEMICOLON { }
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , [$2]) }
  		 | modifiers type variabledeclarators  SEMICOLON { }
 
 methoddeclaration : methodheader methodbody { }
@@ -168,8 +168,8 @@ methodheader	 : type methoddeclarator { }
 type             : primitivetype { }
 		 | referencetype { }
 
-variabledeclarators : variabledeclarator { $1 }
-		 | variabledeclarators  COMMA  variabledeclarator { $1, $3 }
+variabledeclarators : variabledeclarator { [$1] }
+		 | variabledeclarators  COMMA  variabledeclarator { [$1], [$3] }
 
 methodbody       : block { }
 		 | SEMICOLON { }
@@ -208,7 +208,7 @@ argumentlist     : expression { }
 
 numerictype      : integraltype { }
 
-variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1) }
+variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
 
 variableinitializer  : expression { }
 
