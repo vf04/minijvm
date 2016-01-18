@@ -51,6 +51,8 @@ data Name = QualifiedName(Name, Identifier)
   | SimpleName(Identifier)
   deriving (Show)
 
-data Identifier = Identifier(String)
+data Identifier = Identifier(Type)
   deriving(Show)
 
+data VariableDeclarator = VariableDeclarator(VariableDeclaratorId) deriving(Show)
+data VariableDeclaratorId = VariableDeclaratorId(Identifier) deriving(Show)

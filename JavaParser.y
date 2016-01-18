@@ -99,21 +99,21 @@ import JavaLexer
 
 %%
 
--- compilationunit  : typedeclarations { $1 }
+compilationunit  : typedeclarations { $1 }
 
--- typedeclarations : typedeclaration { [$1] }
-		 -- | typedeclarations typedeclaration { $1 ++ [$2] }
+typedeclarations : typedeclaration { [$1] }
+		 | typedeclarations typedeclaration { $1 ++ [$2] }
 
 name             : qualifiedname { $1 }
 		 | simplename { $1 }
 
--- typedeclaration  : classdeclaration { $1 }
+typedeclaration  : classdeclaration { $1 }
 
 qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
 
 simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
 
--- classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), []), [], []) }
+classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], []) }
 --                 | modifiers CLASS IDENTIFIER classbody {Class(Identifier($3, []), [], []) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
@@ -133,13 +133,13 @@ modifier         : PUBLIC { }
 
 classtype        : classorinterfacetype{ }
 
-classbodydeclaration : classmemberdeclaration { }
+classbodydeclaration : classmemberdeclaration { $1  }
 		 | constructordeclaration { }
 
 classorinterfacetype : name{ }
 
-classmemberdeclaration : fielddeclaration { }
-		 | methoddeclaration { }
+classmemberdeclaration : fielddeclaration { $1 }
+		 | methoddeclaration { $1 }
 
 constructordeclaration : constructordeclarator constructorbody { }
 		 |  modifiers constructordeclarator constructorbody { }
@@ -168,8 +168,8 @@ methodheader	 : type methoddeclarator { }
 type             : primitivetype { }
 		 | referencetype { }
 
-variabledeclarators : variabledeclarator { }
-		 | variabledeclarators  COMMA  variabledeclarator { }
+variabledeclarators : variabledeclarator { $1 }
+		 | variabledeclarators  COMMA  variabledeclarator { $1, $3 }
 
 methodbody       : block { }
 		 | SEMICOLON { }
@@ -195,8 +195,8 @@ primitivetype    : BOOLEAN { }
 referencetype    : classorinterfacetype { }
 
 
-variabledeclarator : variabledeclaratorid { }
-		 | variabledeclaratorid ASSIGN variableinitializer { }
+variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
+		 -- | variabledeclaratorid ASSIGN variableinitializer { }
 
 blockstatement	 : localvariabledeclarationstatement { }
 		 | statement  { }
@@ -208,7 +208,7 @@ argumentlist     : expression { }
 
 numerictype      : integraltype { }
 
-variabledeclaratorid : IDENTIFIER { }
+variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1) }
 
 variableinitializer  : expression { }
 
