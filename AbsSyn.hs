@@ -61,5 +61,6 @@ data Modifier = Public()
   | Protected()
   | Private()
   | Static()
+  | Abstract()
   deriving(Show)
 
