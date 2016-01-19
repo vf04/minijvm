@@ -57,10 +57,10 @@ data Identifier = Identifier(String)
 data VariableDeclarator = VariableDeclarator(VariableDeclaratorId) deriving(Show)
 data VariableDeclaratorId = VariableDeclaratorId(Identifier) deriving(Show)
 
-data Modifier = Public()
-  | Protected()
-  | Private()
-  | Static()
-  | Abstract()
+data Modifier = Public
+  | Protected
+  | Private
+  | Static
+  | Abstract
   deriving(Show)
 

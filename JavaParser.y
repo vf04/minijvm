@@ -180,6 +180,14 @@ import JavaLexer
 
 
 %%
+modifiers        : modifier { [$1] }
+  | modifiers modifier { $1 ++ [$2] }
+
+modifier         : PUBLIC { Public }
+   | PROTECTED { Protected }
+                 | PRIVATE { Private }
+                 | STATIC { Static }
+                 | ABSTRACT { Abstract }
 
 name             : qualifiedname { $1 }
    | simplename { $1 }
@@ -188,8 +196,18 @@ qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
 
 simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
 
+
+
+variabledeclarators : variabledeclarator { [$1] }
+--    | variabledeclarators  COMMA  variabledeclarator { [$1], $3 }
+
+variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
+   -- | variabledeclaratorid ASSIGN variableinitializer { }
+
+variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
+
 {
-parse = name . alexScanTokens
+parse = modifiers . alexScanTokens 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
