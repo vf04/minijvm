@@ -193,7 +193,7 @@ qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3}
 
 simplename       : IDENTIFIER { $1 }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], []) }
+classdeclaration : CLASS IDENTIFIER classbody { Class($2, [], []) }
                 | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [], []) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
