@@ -2,7 +2,7 @@ module AbsSyn where
 
 type Type = String
 
-data Class = Class(Identifier, [FieldDecl], [MethodDecl]) deriving (Show)
+data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
 
 data FieldDecl = FieldDecl(Type, [VariableDeclarator]) deriving (Show)
 
@@ -47,15 +47,7 @@ getTypeFromExpr (TypedExpr(_, typ)) = typ
  
 type Prg = [Class]
 
-data Name = QualifiedName(Name, Identifier)
-  | SimpleName(Identifier)
-  deriving (Show)
-
-data Identifier = Identifier(String)
-  deriving(Show)
-
-data VariableDeclarator = VariableDeclarator(VariableDeclaratorId) deriving(Show)
-data VariableDeclaratorId = VariableDeclaratorId(Identifier) deriving(Show)
+data VariableDeclarator = VariableDeclarator(Type) deriving(Show)
 
 data Modifier = Public
   | Protected

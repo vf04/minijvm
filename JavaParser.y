@@ -184,16 +184,16 @@ compilationunit  : typedeclarations { $1 }
 typedeclarations : typedeclaration { [$1] }
    | typedeclarations typedeclaration { $1 ++ [$2] }
 
-name             : qualifiedname { $1 }
+name             : qualifiedname { [$1] }
    | simplename { $1 }
 
 typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
+qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3}
 
-simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
+simplename       : IDENTIFIER { $1 }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], [])
+classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], []) }
                 | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [], []) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
