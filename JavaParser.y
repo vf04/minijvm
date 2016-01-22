@@ -193,8 +193,8 @@ qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
 
 simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [$3], [$4]) }
-                | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [$4] [$5]) }
+classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], [])
+                | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [], []) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
    | LBRACKET classbodydeclarations  RBRACKET { $2 }
@@ -214,9 +214,9 @@ modifier         : PUBLIC { Public }
 classtype        : classorinterfacetype{ }
 
 classbodydeclaration : classmemberdeclaration { $1  }
-   | constructordeclaration { }
+   | constructordeclaration { $1 }
 
-classorinterfacetype : name{ }
+classorinterfacetype : name { $1 }
 
 classmemberdeclaration : fielddeclaration { $1 }
    | methoddeclaration { $1 }
@@ -224,21 +224,21 @@ classmemberdeclaration : fielddeclaration { $1 }
 constructordeclaration : constructordeclarator constructorbody { }
    |  modifiers constructordeclarator constructorbody { }
 
-fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , [$2]) }
-    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, [$3]) }
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
+    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
 
 methoddeclaration : methodheader methodbody { }
 
 block            : LBRACKET   RBRACKET { [] }
-   | LBRACKET  blockstatements  RBRACKET { }
+   | LBRACKET  blockstatements  RBRACKET { $2 }
 
-constructordeclarator :  simplename LBRACE  RBRACE  { }
+constructordeclarator :  simplename LBRACE  RBRACE  { $1 }
    |  simplename LBRACE formalparameterlist RBRACE  { }
 
-constructorbody  : LBRACKET RBRACKET { }
-   | LBRACKET explicitconstructorinvocation  RBRACKET { }
-   | LBRACKET blockstatements  RBRACKET { }
-   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { }
+constructorbody  : LBRACKET RBRACKET { [] }
+   | LBRACKET explicitconstructorinvocation  RBRACKET { $2 }
+   | LBRACKET blockstatements  RBRACKET { $2 }
+   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { $2 }
 
 methodheader  : type methoddeclarator { }
    | modifiers type methoddeclarator { }
@@ -248,12 +248,12 @@ methodheader  : type methoddeclarator { }
 type             : primitivetype { }
    | referencetype { }
 variabledeclarators : variabledeclarator { [$1] }
-  | variabledeclarators  COMMA  variabledeclarator { [$1], $3 }
+  | variabledeclarators  COMMA  variabledeclarator { $1, $3 }
 
-methodbody       : block { }
+methodbody       : block { $1 }
    | SEMICOLON { }
 
-blockstatements  : blockstatement { }
+blockstatements  : blockstatement { [$1] }
    | blockstatements blockstatement { }
 
 formalparameterlist : formalparameter { }
@@ -265,7 +265,7 @@ explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { }
 classtypelist    : classtype { }
    | classtypelist  COMMA  classtype { }
 
-methoddeclarator : IDENTIFIER LBRACE  RBRACE  { }
+methoddeclarator : IDENTIFIER LBRACE  RBRACE  { Identifier($1) }
    | IDENTIFIER LBRACE formalparameterlist  RBRACE  { }
 
 primitivetype    : BOOLEAN { }
@@ -274,7 +274,7 @@ primitivetype    : BOOLEAN { }
 referencetype    : classorinterfacetype { }
 
 variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
-   -- | variabledeclaratorid ASSIGN variableinitializer { }
+   | variabledeclaratorid ASSIGN variableinitializer { }
 
 blockstatement  : localvariabledeclarationstatement { $1 }
    | statement  { }
