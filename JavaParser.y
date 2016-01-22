@@ -276,7 +276,7 @@ referencetype    : classorinterfacetype { }
 variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
    -- | variabledeclaratorid ASSIGN variableinitializer { }
 
-blockstatement  : localvariabledeclarationstatement { }
+blockstatement  : localvariabledeclarationstatement { $1 }
    | statement  { }
 
 formalparameter  : type variabledeclaratorid { }
@@ -289,12 +289,12 @@ numerictype      : integraltype { }
 variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
 variableinitializer  : expression { }
 
-localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { }
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { $1 }
 
 statement        : statementwithouttrailingsubstatement{ }
-   | ifthenstatement { }
-   | ifthenelsestatement { }
-   | whilestatement { }
+   | ifthenstatement { $1 }
+   | ifthenelsestatement { $1 }
+   | whilestatement { $1 }
          
 
 expression       : assignmentexpression { }
@@ -309,13 +309,13 @@ statementwithouttrailingsubstatement : block { }
    | expressionstatement { }
    | returnstatement { }
 
-ifthenstatement  : IF LBRACE expression  RBRACE  statement { }
+ifthenstatement  : IF LBRACE expression  RBRACE  statement { if($3, $5, Nothing) }
 
-ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { }
+ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { if($3, $5, just 7) }
 
-whilestatement   : WHILE LBRACE expression  RBRACE  statement { }
+whilestatement   : WHILE LBRACE expression  RBRACE  statement { while(3, 5) }
 
-assignmentexpression : conditionalexpression { }
+assignmentexpression : conditionalexpression { $1 }
    |  assignment{ }
 
 emptystatement  :  SEMICOLON  { }
@@ -329,7 +329,7 @@ statementnoshortif : statementwithouttrailingsubstatement { }
    | ifthenelsestatementnoshortif { }
    | whilestatementnoshortif { }
 
-conditionalexpression : conditionalorexpression { }
+conditionalexpression : conditionalorexpression { $1 }
    | conditionalorexpression QUESMARK expression  COLON  conditionalexpression { }
 
 assignment       :lefthandside assignmentoperator assignmentexpression { }
