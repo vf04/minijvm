@@ -2,7 +2,7 @@ module AbsSyn where
 
 type Type = String
 
-data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
+data Class = Class(Identifier, [FieldDecl], [MethodDecl]) deriving (Show)
 
 data FieldDecl = FieldDecl(Type, [VariableDeclarator]) deriving (Show)
 

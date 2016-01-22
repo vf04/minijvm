@@ -178,10 +178,32 @@ import JavaLexer
      ARROW { ARROW}
      COMMA { COMMA}
 
-
 %%
+compilationunit  : typedeclarations { $1 }
+
+typedeclarations : typedeclaration { [$1] }
+   | typedeclarations typedeclaration { $1 ++ [$2] }
+
+name             : qualifiedname { $1 }
+   | simplename { $1 }
+
+typedeclaration  : classdeclaration { $1 }
+
+qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
+
+simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
+
+classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [$3], [$4]) }
+                | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [$4] [$5]) }
+
+classbody        : LBRACKET RBRACKET  { ([], []) }
+   | LBRACKET classbodydeclarations  RBRACKET { $2 }
+
 modifiers        : modifier { [$1] }
   | modifiers modifier { $1 ++ [$2] }
+
+classbodydeclarations :  classbodydeclaration { [$1] }
+   | classbodydeclarations classbodydeclaration { $1 ++ [$2] }
 
 modifier         : PUBLIC { Public }
    | PROTECTED { Protected }
@@ -189,22 +211,246 @@ modifier         : PUBLIC { Public }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
 
-name             : qualifiedname { $1 }
-   | simplename { $1 }
+classtype        : classorinterfacetype{ }
 
-qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
+classbodydeclaration : classmemberdeclaration { $1  }
+   | constructordeclaration { }
 
-simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
+classorinterfacetype : name{ }
 
+classmemberdeclaration : fielddeclaration { $1 }
+   | methoddeclaration { $1 }
 
+constructordeclaration : constructordeclarator constructorbody { }
+   |  modifiers constructordeclarator constructorbody { }
 
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , [$2]) }
+    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, [$3]) }
+
+methoddeclaration : methodheader methodbody { }
+
+block            : LBRACKET   RBRACKET { [] }
+   | LBRACKET  blockstatements  RBRACKET { }
+
+constructordeclarator :  simplename LBRACE  RBRACE  { }
+   |  simplename LBRACE formalparameterlist RBRACE  { }
+
+constructorbody  : LBRACKET RBRACKET { }
+   | LBRACKET explicitconstructorinvocation  RBRACKET { }
+   | LBRACKET blockstatements  RBRACKET { }
+   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { }
+
+methodheader  : type methoddeclarator { }
+   | modifiers type methoddeclarator { }
+   | VOID methoddeclarator { }
+   | modifiers VOID methoddeclarator { }
+
+type             : primitivetype { }
+   | referencetype { }
 variabledeclarators : variabledeclarator { [$1] }
---    | variabledeclarators  COMMA  variabledeclarator { [$1], $3 }
+  | variabledeclarators  COMMA  variabledeclarator { [$1], $3 }
+
+methodbody       : block { }
+   | SEMICOLON { }
+
+blockstatements  : blockstatement { }
+   | blockstatements blockstatement { }
+
+formalparameterlist : formalparameter { }
+   | formalparameterlist  COMMA  formalparameter{ }
+
+explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { }
+   | THIS LBRACE argumentlist  RBRACE   SEMICOLON  { }
+
+classtypelist    : classtype { }
+   | classtypelist  COMMA  classtype { }
+
+methoddeclarator : IDENTIFIER LBRACE  RBRACE  { }
+   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { }
+
+primitivetype    : BOOLEAN { }
+   | numerictype { }
+
+referencetype    : classorinterfacetype { }
 
 variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
    -- | variabledeclaratorid ASSIGN variableinitializer { }
 
+blockstatement  : localvariabledeclarationstatement { }
+   | statement  { }
+
+formalparameter  : type variabledeclaratorid { }
+
+argumentlist     : expression { }
+   | argumentlist  COMMA  expression { }
+
+numerictype      : integraltype { }
+
 variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
+variableinitializer  : expression { }
+
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { }
+
+statement        : statementwithouttrailingsubstatement{ }
+   | ifthenstatement { }
+   | ifthenelsestatement { }
+   | whilestatement { }
+         
+
+expression       : assignmentexpression { }
+
+integraltype     : INT  { }
+                 | CHAR { }
+
+localvariabledeclaration : type variabledeclarators { }
+
+statementwithouttrailingsubstatement : block { }
+   | emptystatement { }
+   | expressionstatement { }
+   | returnstatement { }
+
+ifthenstatement  : IF LBRACE expression  RBRACE  statement { }
+
+ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { }
+
+whilestatement   : WHILE LBRACE expression  RBRACE  statement { }
+
+assignmentexpression : conditionalexpression { }
+   |  assignment{ }
+
+emptystatement  :  SEMICOLON  { }
+
+expressionstatement : statementexpression  SEMICOLON { }
+
+returnstatement  : RETURN  SEMICOLON  { }
+   | RETURN expression  SEMICOLON { }
+
+statementnoshortif : statementwithouttrailingsubstatement { }
+   | ifthenelsestatementnoshortif { }
+   | whilestatementnoshortif { }
+
+conditionalexpression : conditionalorexpression { }
+   | conditionalorexpression QUESMARK expression  COLON  conditionalexpression { }
+
+assignment       :lefthandside assignmentoperator assignmentexpression { }
+ 
+
+statementexpression : assignment { }
+   | preincrementexpression { }
+   | predecrementexpression { }
+   | postincrementexpression { }
+   | postdecrementexpression { }
+   | methodinvocation { }
+   | classinstancecreationexpression { }
+
+ifthenelsestatementnoshortif :IF LBRACE expression  RBRACE  statementnoshortif
+         ELSE statementnoshortif  { }
+
+whilestatementnoshortif : WHILE LBRACE expression  RBRACE  statementnoshortif { }
+
+conditionalorexpression : conditionalandexpression { }
+   | conditionalorexpression LOGICALOR conditionalandexpression{ }
+
+lefthandside     : name { }
+
+assignmentoperator : ASSIGN{ }
+   | TIMESEQUAL { }
+   | DIVIDEEQUAL { }
+   | MODULOEQUAL { }
+   | PLUSEQUAL { }
+   | MINUSEQUAL { }
+   | SHIFTLEFTEQUAL { }
+   | SIGNEDSHIFTRIGHTEQUAL { }
+   | UNSIGNEDSHIFTRIGHTEQUAL { }
+   | ANDEQUAL { }
+   | XOREQUAL { }
+   | OREQUAL{ }
+
+preincrementexpression : INCREMENT unaryexpression { }
+
+predecrementexpression : DECREMENT unaryexpression { }
+
+postincrementexpression : postfixexpression INCREMENT { }
+
+postdecrementexpression : postfixexpression DECREMENT { }
+
+methodinvocation : name LBRACE   RBRACE  { }
+   | name LBRACE argumentlist RBRACE { }
+   | primary  DOT IDENTIFIER LBRACE RBRACE  { }
+   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { }
+     
+classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { }
+                 | NEW classtype LBRACE  argumentlist  RBRACE  { }
+
+conditionalandexpression : inclusiveorexpression { }
+
+fieldaccess      : primary  DOT IDENTIFIER { }
+
+unaryexpression  : preincrementexpression { }
+   | predecrementexpression { }
+   | PLUS unaryexpression { }
+   | MINUS unaryexpression { }
+   | unaryexpressionnotplusminus { }
+
+postfixexpression : primary { }
+   | name { }
+   | postincrementexpression { }
+   | postdecrementexpression{ }
+
+primary   : primarynonewarray { }
+
+inclusiveorexpression : exclusiveorexpression { }
+   | inclusiveorexpression OR exclusiveorexpression { }
+
+primarynonewarray : literal { }
+   | THIS { }
+   | LBRACE expression RBRACE  { }
+                 | classinstancecreationexpression { }
+   | fieldaccess { }
+   | methodinvocation { }
+
+unaryexpressionnotplusminus : postfixexpression { }
+          | TILDE unaryexpression { }
+   | EXCLMARK unaryexpression { }
+   | castexpression{ }
+
+exclusiveorexpression : andexpression { }
+   | exclusiveorexpression XOR andexpression { }
+
+literal   : INTLITERAL { }
+   | BOOLLITERAL { }
+   | CHARLITERAL { }
+   | STRINGLITERAL { }
+   | JNULL { }
+
+castexpression  : LBRACE  primitivetype  RBRACE  unaryexpression { }
+    | LBRACE  expression  RBRACE  unaryexpressionnotplusminus{ }
+
+andexpression    : equalityexpression { }
+   | andexpression AND equalityexpression { }
+
+equalityexpression : relationalexpression { }
+   | equalityexpression EQUAL relationalexpression { }
+   | equalityexpression NOTEQUAL relationalexpression { }
+
+relationalexpression : shiftexpression { }
+   | relationalexpression LESS shiftexpression { }
+   | relationalexpression GREATER shiftexpression { }
+   | relationalexpression LESSEQUAL shiftexpression { }
+   | relationalexpression GREATEREQUAL shiftexpression { }
+   | relationalexpression INSTANCEOF referencetype { }
+
+shiftexpression  : additiveexpression { }
+
+additiveexpression : multiplicativeexpression { }
+   | additiveexpression PLUS multiplicativeexpression { }
+   | additiveexpression MINUS multiplicativeexpression { }
+
+multiplicativeexpression : unaryexpression { }
+   | multiplicativeexpression MUL unaryexpression { }
+   | multiplicativeexpression DIV unaryexpression { }
+   | multiplicativeexpression MOD unaryexpression { }
+
 
 {
 parse = modifiers . alexScanTokens 
