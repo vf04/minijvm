@@ -1,6 +1,6 @@
 module AbsSyn where
 
-type Type = String
+data Type = Type(String) deriving(Show)
 
 data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
 
