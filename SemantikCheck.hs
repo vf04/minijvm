@@ -15,8 +15,8 @@ typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 				thisVar = getMaybeLocalVar "this" localVars
 				thisClassType = getTypeFromLocalVar $ fromJustOrError thisVar "'this' var was not found. Cannot evaluate field vars."
 				thisClass = getMaybeClass thisClassType classes
-				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ fromJustOrError thisClass $ "Class " ++ thisClassType ++ " was not found."
-				fieldVarType = getTypeFromFieldDecl $ fromJustOrError fieldVarDecl $ "var '" ++ varName ++ "' is neither a local var nor a field var in " ++ thisClassType
+				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ fromJustOrError thisClass $ "Class " ++ (getTypeNameFromType thisClassType) ++ " was not found."
+				fieldVarType = getTypeFromFieldDecl $ fromJustOrError fieldVarDecl $ "var '" ++ varName ++ "' is neither a local var nor a field var in " ++ (getTypeNameFromType thisClassType)
 			in
 			TypedExpr(LocalOrFieldVar(varName),fieldVarType)
 		else
@@ -30,11 +30,10 @@ typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 		instanceExpr = typecheckExpr expr localVars classes
 		instanceType = getTypeFromExpr instanceExpr
 		instanceClass = getMaybeClass instanceType classes
-		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ fromJustOrError instanceClass $ "class " ++ instanceType ++ " was not found when checking inst var " ++ instVarName
-		instVarType = getTypeFromFieldDecl $ fromJustOrError instVarFieldDecl $ "field declaration " ++ instVarName ++ " was not found in class " ++ instanceType
+		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var " ++ instVarName
+		instVarType = getTypeFromFieldDecl $ fromJustOrError instVarFieldDecl $ "field declaration " ++ instVarName ++ " was not found in class " ++ (getTypeNameFromType instanceType)
 	in
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)))
---TODO: Schönere Fehlerausgaben, falls Klasse oder Feld nicht gefunden
 
 typecheckExpr(Unary(operator, expr)) = 
 	(\ localVars -> (\ classes -> 
@@ -51,11 +50,11 @@ typecheckExpr(Binary(operator, expA, expB)) =
 		typeOfBinary = getTypeOfBinary operator typeA typeB
 	in TypedExpr(Binary(operator,typedExprA,typedExprB),typeOfBinary)))
 
-typecheckExpr(Integer(i)) = (\ _ -> (\ _ -> TypedExpr(Integer(i),"int")))
-typecheckExpr(Bool(b)) = (\ _ -> (\ _ -> TypedExpr(Bool(b),"bool")))
-typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),"char")))
-typecheckExpr(String(s)) = (\ _ -> (\ _ -> TypedExpr(String(s),"String")))
-typecheckExpr(Jnull) = (\ _ -> (\ _ -> TypedExpr(Jnull,"null")))
+typecheckExpr(Integer(i)) = (\ _ -> (\ _ -> TypedExpr(Integer(i),Type "int")))
+typecheckExpr(Bool(b)) = (\ _ -> (\ _ -> TypedExpr(Bool(b),Type "bool")))
+typecheckExpr(Char(c)) = (\ _ -> (\ _ -> TypedExpr(Char(c),Type "char")))
+typecheckExpr(String(s)) = (\ _ -> (\ _ -> TypedExpr(String(s),Type "String")))
+typecheckExpr(Jnull) = (\ _ -> (\ _ -> TypedExpr(Jnull,Type "null")))
 typecheckExpr(StmtExprExpr(stmtExpr)) =
 	(\localVars -> (\classes ->
 	let
@@ -88,7 +87,7 @@ typecheckStmt(Block(firstStmt : stmts)) = (\localVars -> (\classes ->
 	in
 		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlock)))
 
-typecheckStmt(Block([])) = (\_ -> (\_ -> TypedStmt(Block([]),"void")))
+typecheckStmt(Block([])) = (\_ -> (\_ -> TypedStmt(Block([]),Type "void")))
 
 typecheckStmt(Return(expr)) = (\localVars -> (\classes ->
 	let
@@ -106,14 +105,14 @@ typecheckStmt(While(conditionExpr, stmt)) = (\localVars -> (\classes ->
 		TypedStmt(While(typedConditionExpr, typedStmt), stmtType)))
 
 typecheckStmt(LocalVarDecl(varType, varName)) = (\localVars -> (\classes ->
-	TypedStmt(LocalVarDecl(varType, varName),"void")))
+	TypedStmt(LocalVarDecl(varType, varName),Type "void")))
 
 typecheckStmt(If(conditionExpr, stmtTrue, Nothing)) = (\localVars -> (\classes ->
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
 		typedStmtTrue = typecheckStmt typedStmtTrue localVars classes
 		stmtTrueType = getTypeFromStmt typedStmtTrue
-		upperBoundStmtType = typeUpperBound stmtTrueType "void"
+		upperBoundStmtType = typeUpperBound stmtTrueType (Type "void")
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, Nothing),upperBoundStmtType)))
 
@@ -132,7 +131,7 @@ typecheckStmt(StmtExprStmt(stmtExpr)) =	(\localVars -> (\classes ->
 	let
 		typedStmtExpr = typecheckStmtExpr stmtExpr localVars classes
 	in
-		TypedStmt(StmtExprStmt(typedStmtExpr),"void")))
+		TypedStmt(StmtExprStmt(typedStmtExpr),Type "void")))
 
 
 typecheckStmtExpr :: StmtExpr -> [(Type, String)] -> [Class] -> StmtExpr
@@ -161,9 +160,9 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
 		instanceClass = getMaybeClass instanceType classes
-		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ fromJustOrError instanceClass $ "could not find class " ++ instanceType ++ " when calling " ++ methodName
-		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ instanceType
-		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ instanceType
+		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ fromJustOrError instanceClass $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName
+		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ (getTypeNameFromType instanceType)
+		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration in class " ++ (getTypeNameFromType instanceType)
 		declArgTypes = map (\(argType, argName) -> argType) methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
 		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
@@ -172,7 +171,7 @@ typecheckStmtExpr(MethodCall(instanceExpr, methodName, arguments)) = (\localVars
 		then
 			TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType)
 		else
-			error $ "argument type mismatch when calling " ++ methodName ++ " in class " ++ instanceType))
+			error $ "argument type mismatch when calling " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)))
 
 typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
 typecheckFieldDecls fieldDecls classes = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
@@ -198,11 +197,11 @@ typecheckMethod(MethodDecl(methodType, methodName, arguments, stmt)) = (\thisTyp
 						then
 							MethodDecl(methodType, methodName, arguments, typedStmt)
 						else
-							error $ "evaluated return type " ++ actualMehtodType ++ " does not match to the given return type " ++ methodType
+							error $ "evaluated return type " ++ (getTypeNameFromType actualMehtodType) ++ " does not match to the given return type " ++ (getTypeNameFromType methodType)
 				else
-					error $ "One or multiple arguments of method " ++ methodName ++ " in class " ++ thisType ++ " name an invalid type"
+					error $ "One or multiple arguments of method " ++ methodName ++ " in class " ++ (getTypeNameFromType thisType) ++ " name an invalid type"
 		else
-			error $ "return type " ++ methodType ++ " of method " ++ methodName ++ " in class " ++ thisType ++ "does not exist"))
+			error $ "return type " ++ (getTypeNameFromType methodType) ++ " of method " ++ methodName ++ " in class " ++ (getTypeNameFromType thisType) ++ "does not exist"))
 
 typecheckClass :: Class -> [Class] -> Class
 typecheckClass(Class(className, fieldDecls, methodDecls)) = (\classes ->
@@ -216,7 +215,7 @@ typecheckClass(Class(className, fieldDecls, methodDecls)) = (\classes ->
 			in
 				Class(className, fieldDecls, typedMethods)
 		else
-			error $ "One or multiple field declarations of class " ++ className ++ " name an invalid type")
+			error $ "One or multiple field declarations of class " ++ (getTypeNameFromType className) ++ " name an invalid type")
 
 typecheckPrg :: Prg -> Prg
 typecheckPrg(classes) =
@@ -225,17 +224,17 @@ typecheckPrg(classes) =
 -- Hilfsfunktionen
 
 typeUpperBound :: Type -> Type -> Type
-typeUpperBound "void" x = x
-typeUpperBound x "void" = x
-typeUpperBound "null" x = "null"
-typeUpperBound x "null" = "null"
-typeUpperBound "bool" "bool" = "bool"
-typeUpperBound "bool" "int" = "int"
-typeUpperBound "char" "char" = "char"
-typeUpperBound "int" "bool" = "int"
-typeUpperBound "int" "int" = "int"
-typeUpperBound "String" "String" = "String"
-typeUpperBound _ _ = "Object"
+typeUpperBound (Type "void") x = x
+typeUpperBound x (Type "void") = x
+typeUpperBound (Type "null") x = Type "null"
+typeUpperBound x (Type "null") = Type "null"
+typeUpperBound (Type "bool") (Type "bool") = Type "bool"
+typeUpperBound (Type "bool") (Type "int") = Type "int"
+typeUpperBound (Type "char") (Type "char") = Type "char"
+typeUpperBound (Type "int") (Type "bool") = Type "int"
+typeUpperBound (Type "int") (Type "int") = Type "int"
+typeUpperBound (Type "String") (Type "String") = Type "String"
+typeUpperBound _ _ = Type "Object"
 
 getTypeOfBinary :: String -> Type -> Type -> Type
 getTypeOfBinary("+") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
@@ -243,8 +242,8 @@ getTypeOfBinary("-") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("*") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("/") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
-getTypeOfBinary("&&") = (\"bool" -> (\"bool" -> "bool"))
-getTypeOfBinary("||") = (\"bool" -> (\"bool" -> "bool"))
+getTypeOfBinary("&&") = (\(Type "bool") -> (\(Type "bool") -> Type "bool"))
+getTypeOfBinary("||") = (\(Type "bool") -> (\(Type "bool") -> Type "bool"))
 
 getMaybeClass :: Type -> [Class] -> Maybe Class
 getMaybeClass _ [] = Nothing
@@ -281,7 +280,7 @@ getTypeFromFieldDecl :: FieldDecl -> Type
 getTypeFromFieldDecl(FieldDecl(typeName,_)) = typeName
 
 getTypeFromClass :: Class -> Type
-getTypeFromClass(Class(className,_,_)) = className
+getTypeFromClass(Class(classType,_,_)) = classType
 
 getFieldDeclsFromClass :: Class -> [FieldDecl]
 getFieldDeclsFromClass(Class(_,fieldDecls,_)) = fieldDecls
@@ -304,13 +303,16 @@ removeLocalVar(varName) = (\varList ->
 		if aVarName == varName then list
 		else (aVarType,aVarName) : list) [] varList)
 
+getTypeNameFromType :: Type -> String
+getTypeNameFromType(Type(typeName)) = typeName
+
 typeExists :: Type -> [Class] -> Bool
-typeExists "bool" _ = True
-typeExists "char" _ = True
-typeExists "int" _ = True
-typeExists "null" _ = True
-typeExists "void" _ = True
-typeExists "String" _ = True
-typeExists "Object" _ = True
+typeExists (Type "bool") _ = True
+typeExists (Type "char") _ = True
+typeExists (Type "int") _ = True
+typeExists (Type "null") _ = True
+typeExists (Type "void") _ = True
+typeExists (Type "String") _ = True
+typeExists (Type "Object") _ = True
 typeExists typeName classes = elem typeName $ map getTypeFromClass classes
 

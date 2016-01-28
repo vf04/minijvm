@@ -1,20 +1,22 @@
 module AbsSyn where
 
-data Type = Type(String) deriving(Show)
+data Type = Type(String) deriving(Show,Eq)
 
 data Class = Class(Type, [FieldDecl], [MethodDecl]) deriving (Show)
 
-data FieldDecl = FieldDecl(Type, [VariableDeclarator]) deriving (Show)
+--data FieldDecl = FieldDecl(Type, [VariableDeclarator]) deriving (Show)
+data FieldDecl = FieldDecl(Type, String) deriving (Show)
 
 data MethodDecl = MethodDecl(Type, String,[(Type,String)], Stmt) deriving (Show)
 
 data Stmt = Block([Stmt])
           | Return( Expr )
           | While( Expr , Stmt )
-          | LocalVarDecl(VariableDeclarator)
+--          | LocalVarDecl(VariableDeclarator)
+          | LocalVarDecl(Type, String)
           | If(Expr, Stmt , Maybe Stmt) 
           | StmtExprStmt(StmtExpr) 
-      | TypedStmt(Stmt, Type)
+          | TypedStmt(Stmt, Type)
           deriving (Show)
 
 getTypeFromStmt (TypedStmt(_, typ)) = typ
