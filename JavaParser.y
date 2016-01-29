@@ -189,14 +189,14 @@ name             : qualifiedname { [$1] }
 
 typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3}
+qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3]}
 
 simplename       : IDENTIFIER { $1 }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class($2, [], []) }
-                | modifiers CLASS IDENTIFIER classbody { $1, Class(Identifier($3), [], []) }
+classdeclaration : CLASS IDENTIFIER classbody { Class(Type($2), fst($3), snd($3)) }
+--                | modifiers CLASS IDENTIFIER classbody { $1 Class($3, $4) }
 
-classbody        : LBRACKET RBRACKET  { ([], []) }
+classbody        : LBRACKET RBRACKET  { ([FieldDecl], [MethodDecl]) }
    | LBRACKET classbodydeclarations  RBRACKET { $2 }
 
 modifiers        : modifier { [$1] }
@@ -211,7 +211,7 @@ modifier         : PUBLIC { Public }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
 
-classtype        : classorinterfacetype{ }
+classtype        : classorinterfacetype{ $1 }
 
 classbodydeclaration : classmemberdeclaration { $1  }
    | constructordeclaration { $1 }
@@ -221,127 +221,127 @@ classorinterfacetype : name { $1 }
 classmemberdeclaration : fielddeclaration { $1 }
    | methoddeclaration { $1 }
 
-constructordeclaration : constructordeclarator constructorbody { }
-   |  modifiers constructordeclarator constructorbody { }
+constructordeclaration : constructordeclarator constructorbody { $1, $2 }
+--   |  modifiers constructordeclarator constructorbody { $1, $2, $3 }
 
 fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
-    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
+--    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
 
-methoddeclaration : methodheader methodbody { }
+methoddeclaration : methodheader methodbody { $1, $2 }
 
-block            : LBRACKET   RBRACKET { [] }
-   | LBRACKET  blockstatements  RBRACKET { $2 }
+block            : LBRACKET   RBRACKET { Block([]) }
+   | LBRACKET  blockstatements  RBRACKET { Block($2) }
 
 constructordeclarator :  simplename LBRACE  RBRACE  { $1 }
-   |  simplename LBRACE formalparameterlist RBRACE  { }
+   |  simplename LBRACE formalparameterlist RBRACE  { $1, $3 }
 
-constructorbody  : LBRACKET RBRACKET { [] }
+constructorbody  : LBRACKET RBRACKET { Empty }
    | LBRACKET explicitconstructorinvocation  RBRACKET { $2 }
    | LBRACKET blockstatements  RBRACKET { $2 }
-   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { $2 }
+   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { $2, $3 }
 
-methodheader  : type methoddeclarator { }
-   | modifiers type methoddeclarator { }
-   | VOID methoddeclarator { }
-   | modifiers VOID methoddeclarator { }
+methodheader  : type methoddeclarator { $1, $2 }
+   | modifiers type methoddeclarator { $1 $2 $3 }
+   | VOID methoddeclarator { $2 }
+   | modifiers VOID methoddeclarator { $1 $3 }
 
-type             : primitivetype { }
-   | referencetype { }
+type             : primitivetype { $1 }
+   | referencetype { $1 }
 variabledeclarators : variabledeclarator { [$1] }
-  | variabledeclarators  COMMA  variabledeclarator { $1, $3 }
+  | variabledeclarators  COMMA  variabledeclarator { $1 ++ [$3] }
 
 methodbody       : block { $1 }
-   | SEMICOLON { }
+   | SEMICOLON {  Empty }
 
 blockstatements  : blockstatement { [$1] }
-   | blockstatements blockstatement { }
+   | blockstatements blockstatement { $1 ++ $2 }
 
-formalparameterlist : formalparameter { }
-   | formalparameterlist  COMMA  formalparameter{ }
+formalparameterlist : formalparameter { [$1] }
+   | formalparameterlist  COMMA  formalparameter { $1 ++[$2] }
 
-explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { }
-   | THIS LBRACE argumentlist  RBRACE   SEMICOLON  { }
+explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { This }
+   | THIS LBRACE argumentlist  RBRACE   SEMICOLON  { [This] ++ $3 }
 
-classtypelist    : classtype { }
-   | classtypelist  COMMA  classtype { }
+classtypelist    : classtype { [$1] }
+   | classtypelist  COMMA  classtype { $1 ++[$3] }
 
-methoddeclarator : IDENTIFIER LBRACE  RBRACE  { Identifier($1) }
-   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { }
+methoddeclarator : IDENTIFIER LBRACE  RBRACE  { $1 }
+   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { $1, $3 }
 
-primitivetype    : BOOLEAN { }
-   | numerictype { }
+primitivetype    : BOOLEAN { Type("bool") }
+   | numerictype { $1 }
 
-referencetype    : classorinterfacetype { }
+referencetype    : classorinterfacetype { $1 }
 
-variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
-   | variabledeclaratorid ASSIGN variableinitializer { }
+variabledeclarator : variabledeclaratorid { $1 }
+   | variabledeclaratorid ASSIGN variableinitializer { $1, $3 }
 
 blockstatement  : localvariabledeclarationstatement { $1 }
-   | statement  { }
+   | statement  { $1 }
 
-formalparameter  : type variabledeclaratorid { }
+formalparameter  : type variabledeclaratorid { $1, $2 }
 
-argumentlist     : expression { }
-   | argumentlist  COMMA  expression { }
+argumentlist     : expression { [$1] }
+   | argumentlist  COMMA  expression { $1 ++[$3] }
 
-numerictype      : integraltype { }
+numerictype      : integraltype { $1 }
 
-variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
-variableinitializer  : expression { }
+variabledeclaratorid : IDENTIFIER { $1 }
+variableinitializer  : expression { $1 }
 
 localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { $1 }
 
-statement        : statementwithouttrailingsubstatement{ }
+statement        : statementwithouttrailingsubstatement { $1  }
    | ifthenstatement { $1 }
    | ifthenelsestatement { $1 }
    | whilestatement { $1 }
          
 
-expression       : assignmentexpression { }
+expression       : assignmentexpression { $1 }
 
-integraltype     : INT  { }
-                 | CHAR { }
+integraltype     : INT  { Type("int") }
+                 | CHAR { Type("char") }
 
-localvariabledeclaration : type variabledeclarators { }
+localvariabledeclaration : type variabledeclarators { $1, $2 }
 
-statementwithouttrailingsubstatement : block { }
+statementwithouttrailingsubstatement : block { $1 }
    | emptystatement { }
-   | expressionstatement { }
-   | returnstatement { }
+   | expressionstatement { $1 }
+   | returnstatement { $1 }
 
-ifthenstatement  : IF LBRACE expression  RBRACE  statement { if($3, $5, Nothing) }
+ifthenstatement  : IF LBRACE expression  RBRACE  statement { If($3, $5, Nothing) }
 
-ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { if($3, $5, just 7) }
+ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { If($3, $5, Just $7) }
 
-whilestatement   : WHILE LBRACE expression  RBRACE  statement { while(3, 5) }
+whilestatement   : WHILE LBRACE expression  RBRACE  statement { While($3, $5) }
 
 assignmentexpression : conditionalexpression { $1 }
-   |  assignment{ }
+   |  assignment { $1 }
 
-emptystatement  :  SEMICOLON  { }
+emptystatement  :  SEMICOLON  { Empty }
 
-expressionstatement : statementexpression  SEMICOLON { }
+expressionstatement : statementexpression  SEMICOLON { $1 }
 
-returnstatement  : RETURN  SEMICOLON  { }
-   | RETURN expression  SEMICOLON { }
+returnstatement  : RETURN  SEMICOLON  { Return(Jnull) }
+   | RETURN expression  SEMICOLON { Return($2) }
 
-statementnoshortif : statementwithouttrailingsubstatement { }
-   | ifthenelsestatementnoshortif { }
-   | whilestatementnoshortif { }
+statementnoshortif : statementwithouttrailingsubstatement { $1 }
+   | ifthenelsestatementnoshortif { $1 }
+   | whilestatementnoshortif { $1 }
 
 conditionalexpression : conditionalorexpression { $1 }
    | conditionalorexpression QUESMARK expression  COLON  conditionalexpression { }
 
-assignment       :lefthandside assignmentoperator assignmentexpression { }
+assignment       : lefthandside assignmentoperator assignmentexpression { }
  
 
-statementexpression : assignment { }
-   | preincrementexpression { }
-   | predecrementexpression { }
-   | postincrementexpression { }
-   | postdecrementexpression { }
-   | methodinvocation { }
-   | classinstancecreationexpression { }
+statementexpression : assignment { $1 }
+   | preincrementexpression { $1 }
+   | predecrementexpression { $1 }
+   | postincrementexpression { $1 }
+   | postdecrementexpression { $1 }
+   | methodinvocation { $1 }
+   | classinstancecreationexpression { $1 }
 
 ifthenelsestatementnoshortif :IF LBRACE expression  RBRACE  statementnoshortif
          ELSE statementnoshortif  { }
@@ -351,7 +351,7 @@ whilestatementnoshortif : WHILE LBRACE expression  RBRACE  statementnoshortif { 
 conditionalorexpression : conditionalandexpression { }
    | conditionalorexpression LOGICALOR conditionalandexpression{ }
 
-lefthandside     : name { }
+lefthandside     : name { $1 }
 
 assignmentoperator : ASSIGN{ }
    | TIMESEQUAL { }
@@ -374,13 +374,13 @@ postincrementexpression : postfixexpression INCREMENT { }
 
 postdecrementexpression : postfixexpression DECREMENT { }
 
-methodinvocation : name LBRACE   RBRACE  { }
-   | name LBRACE argumentlist RBRACE { }
-   | primary  DOT IDENTIFIER LBRACE RBRACE  { }
+methodinvocation : name LBRACE   RBRACE  { $1 }
+   | name LBRACE argumentlist RBRACE { $1, $2 }
+   | primary  DOT IDENTIFIER LBRACE RBRACE  { $1, $3 }
    | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { }
      
-classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { }
-                 | NEW classtype LBRACE  argumentlist  RBRACE  { }
+classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { $2 }
+                 | NEW classtype LBRACE  argumentlist  RBRACE  { $2, $4 }
 
 conditionalandexpression : inclusiveorexpression { }
 
@@ -421,7 +421,7 @@ literal   : INTLITERAL { }
    | BOOLLITERAL { }
    | CHARLITERAL { }
    | STRINGLITERAL { }
-   | JNULL { }
+   | JNULL { Jnull }
 
 castexpression  : LBRACE  primitivetype  RBRACE  unaryexpression { }
     | LBRACE  expression  RBRACE  unaryexpressionnotplusminus{ }
