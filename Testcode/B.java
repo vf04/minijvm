@@ -13,7 +13,7 @@ public class B {
 	}
 	
 	void setX(int i) {
-		this.x = i;
+		x = i;
 	}
 	
 	void setY(int i) {
