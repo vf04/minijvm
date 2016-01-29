@@ -143,6 +143,10 @@ typecheckStmt(If(conditionExpr, stmtTrue, Just stmtFalse)) = (\localVars -> (\cl
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)))
 
+typecheckStmt(Empty) =	(\localVars -> (\classes ->
+		TypedStmt(Empty,Type "void")))
+
+
 typecheckStmt(StmtExprStmt(stmtExpr)) =	(\localVars -> (\classes ->
 	let
 		typedStmtExpr = typecheckStmtExpr stmtExpr localVars classes
