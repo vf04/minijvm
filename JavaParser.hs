@@ -4023,7 +4023,7 @@ happyReduce_92 = happySpecReduce_2  93 happyReduction_92
 happyReduction_92 _
 	_
 	 =  HappyAbsSyn93
-		 (([FieldDecl], [MethodDecl])
+		 (([], [])
 	)
 
 happyReduce_93 = happySpecReduce_3  93 happyReduction_93
