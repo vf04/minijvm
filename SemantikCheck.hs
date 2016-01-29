@@ -114,7 +114,7 @@ typecheckStmt (LocalVarDecl(varType, varName)) localVars classes =
 typecheckStmt (If(conditionExpr, stmtTrue, Nothing)) localVars classes =
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
-		typedStmtTrue = typecheckStmt typedStmtTrue localVars classes
+		typedStmtTrue = typecheckStmt stmtTrue localVars classes
 		stmtTrueType = getTypeFromStmt typedStmtTrue
 		upperBoundStmtType = typeUpperBound stmtTrueType (Type "void")
 	in
@@ -123,7 +123,7 @@ typecheckStmt (If(conditionExpr, stmtTrue, Nothing)) localVars classes =
 typecheckStmt (If(conditionExpr, stmtTrue, Just stmtFalse)) localVars classes =
 	let
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
-		typedStmtTrue = typecheckStmt typedStmtTrue localVars classes
+		typedStmtTrue = typecheckStmt stmtTrue localVars classes
 		stmtTrueType = getTypeFromStmt typedStmtTrue
 		typedStmtFalse = typecheckStmt stmtFalse localVars classes
 		stmtFalseType = getTypeFromStmt typedStmtFalse
@@ -261,6 +261,12 @@ getTypeOfBinary "<" typeA typeB
 	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
 getTypeOfBinary ">" typeA typeB
+	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
+getTypeOfBinary "<=" typeA typeB
+	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
+getTypeOfBinary ">=" typeA typeB
 	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
 getTypeOfBinary "==" typeA typeB
