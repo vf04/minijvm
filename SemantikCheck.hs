@@ -5,6 +5,13 @@ import AbsSyn
 -- Ausdruck/Statement, Lokale Variablen, Sichtbare Klassen -> Getypter Ausdruck/Statement
 
 typecheckExpr :: Expr -> [(Type, String)] -> [Class] -> Expr
+typecheckExpr(This) = (\localVars -> (\classes ->
+	let
+		thisVar = getMaybeLocalVar "this" localVars
+		thisClassType = getTypeFromLocalVar $ fromJustOrError thisVar "'this' var was not found."
+	in
+		TypedExpr(This,thisClassType)))
+
 typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 	let
 		localVar = getMaybeLocalVar varName localVars
@@ -24,6 +31,15 @@ typecheckExpr(LocalOrFieldVar(varName)) = (\ localVars -> (\ classes ->
 				varType = getTypeFromLocalVar $ fromJustOrError localVar $ "could not retrieve var type from local var " ++ varName
 			in
 				TypedExpr(LocalOrFieldVar(varName),varType)))
+
+typecheckExpr(InstVar(expr, "this")) = (\ localVars -> (\ classes ->
+	let
+		instanceExpr = typecheckExpr expr localVars classes
+		instanceType = getTypeFromExpr instanceExpr
+		instanceClass = getMaybeClass instanceType classes
+		instanceClassType = getTypeFromClass $ fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var this"
+	in
+		TypedExpr((InstVar(instanceExpr, "this")),instanceClassType)))
 
 typecheckExpr(InstVar(expr, instVarName)) = (\ localVars -> (\ classes ->
 	let
@@ -146,7 +162,7 @@ typecheckStmtExpr(Assign(expA, expB)) = (\localVars -> (\classes ->
 		then
 			TypedStmtExpr(Assign(typedExprA,typedExprB),typeA)
 		else
-			error "assign type mismatch"))
+			error $ "cannot assign " ++ (getTypeNameFromType typeB) ++ " " ++ (show expB) ++ " to " ++ (getTypeNameFromType typeA) ++ " " ++ (show expA)))
 
 typecheckStmtExpr(New(newType, newExpressions)) = (\localVars -> (\classes ->
 	let
@@ -234,7 +250,12 @@ typeUpperBound (Type "char") (Type "char") = Type "char"
 typeUpperBound (Type "int") (Type "bool") = Type "int"
 typeUpperBound (Type "int") (Type "int") = Type "int"
 typeUpperBound (Type "String") (Type "String") = Type "String"
-typeUpperBound _ _ = Type "Object"
+typeUpperBound x y =
+	if x == y
+	then
+		x
+	else
+		Type "Object"
 
 getTypeOfBinary :: String -> Type -> Type -> Type
 getTypeOfBinary("+") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
@@ -244,6 +265,24 @@ getTypeOfBinary("/") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("%") = (\typeA -> (\typeB -> typeUpperBound typeA typeB))
 getTypeOfBinary("&&") = (\(Type "bool") -> (\(Type "bool") -> Type "bool"))
 getTypeOfBinary("||") = (\(Type "bool") -> (\(Type "bool") -> Type "bool"))
+getTypeOfBinary("<") = (\typeA -> (\typeB ->
+	if (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA)
+	then
+		Type "bool"
+	else
+		error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)))
+getTypeOfBinary(">") = (\typeA -> (\typeB ->
+	if (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA)
+	then
+		Type "bool"
+	else
+		error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)))
+getTypeOfBinary("==") = (\typeA -> (\typeB ->
+	if (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA)
+	then
+		Type "bool"
+	else
+		error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)))
 
 getMaybeClass :: Type -> [Class] -> Maybe Class
 getMaybeClass _ [] = Nothing
