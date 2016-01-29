@@ -17,6 +17,7 @@ data Stmt = Block([Stmt])
           | If(Expr, Stmt , Maybe Stmt) 
           | StmtExprStmt(StmtExpr) 
           | TypedStmt(Stmt, Type)
+          | Empty
           deriving (Show)
 
 getTypeFromStmt (TypedStmt(_, typ)) = typ
