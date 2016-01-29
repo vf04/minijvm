@@ -32,15 +32,6 @@ typecheckExpr (LocalOrFieldVar(varName)) localVars classes =
 			in
 				TypedExpr(LocalOrFieldVar(varName),varType)
 
-typecheckExpr (InstVar(expr, "this")) localVars classes =
-	let
-		instanceExpr = typecheckExpr expr localVars classes
-		instanceType = getTypeFromExpr instanceExpr
-		instanceClass = getMaybeClass instanceType classes
-		instanceClassType = getTypeFromClass $ fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var this"
-	in
-		TypedExpr((InstVar(instanceExpr, "this")),instanceClassType)
-
 typecheckExpr (InstVar(expr, instVarName)) localVars classes =
 	let
 		instanceExpr = typecheckExpr expr localVars classes
