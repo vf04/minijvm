@@ -178,287 +178,281 @@ import JavaLexer
      ARROW { ARROW}
      COMMA { COMMA}
 
-
 %%
-
 compilationunit  : typedeclarations { $1 }
 
 typedeclarations : typedeclaration { [$1] }
    | typedeclarations typedeclaration { $1 ++ [$2] }
 
-name             : qualifiedname { $1 }
+name             : qualifiedname { [$1] }
    | simplename { $1 }
 
 typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { QualifiedName($1, Identifier($3)) }
+qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3]}
 
-simplename       : IDENTIFIER { SimpleName(Identifier($1)) }
+simplename       : IDENTIFIER { $1 }
 
-classdeclaration : CLASS IDENTIFIER classbody { Class(Identifier($2), [], []) }
-                | modifiers CLASS IDENTIFIER classbody {Class(Identifier($3, []), [], []) }
+classdeclaration : CLASS IDENTIFIER classbody { Class(Type($2), fst($3), snd($3)) }
+--                | modifiers CLASS IDENTIFIER classbody { $1 Class($3, $4) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
    | LBRACKET classbodydeclarations  RBRACKET { $2 }
 
-modifiers        : modifier { }
-   | modifiers modifier   { }
+modifiers        : modifier { [$1] }
+  | modifiers modifier { $1 ++ [$2] }
 
-classbodydeclarations :  classbodydeclaration { }
-   | classbodydeclarations classbodydeclaration{ }
+classbodydeclarations :  classbodydeclaration { [$1] }
+   | classbodydeclarations classbodydeclaration { $1 ++ [$2] }
 
-modifier         : PUBLIC { }
-   | PROTECTED { }
-                 | PRIVATE { }
-                 | STATIC { }
-                 | ABSTRACT { }
+modifier         : PUBLIC { Public }
+   | PROTECTED { Protected }
+                 | PRIVATE { Private }
+                 | STATIC { Static }
+                 | ABSTRACT { Abstract }
 
-classtype        : classorinterfacetype{ }
+classtype        : classorinterfacetype{ $1 }
 
 classbodydeclaration : classmemberdeclaration { $1  }
-   | constructordeclaration { }
+   | constructordeclaration { $1 }
 
-classorinterfacetype : name{ }
+classorinterfacetype : name { $1 }
 
 classmemberdeclaration : fielddeclaration { $1 }
    | methoddeclaration { $1 }
 
-constructordeclaration : constructordeclarator constructorbody { }
-   |  modifiers constructordeclarator constructorbody { }
+constructordeclaration : constructordeclarator constructorbody { Empty }
+--   |  modifiers constructordeclarator constructorbody { $1, $2, $3 }
 
-fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , [$2]) }
-    | modifiers type variabledeclarators  SEMICOLON { }
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
+--    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
 
-methoddeclaration : methodheader methodbody { }
+methoddeclaration : methodheader methodbody {  Empty }
 
-block            : LBRACKET   RBRACKET { }
-   | LBRACKET  blockstatements  RBRACKET { }
+block            : LBRACKET   RBRACKET { Empty }
+   | LBRACKET  blockstatements  RBRACKET { Empty }
 
-constructordeclarator :  simplename LBRACE  RBRACE  { }
-   |  simplename LBRACE formalparameterlist RBRACE  { }
+constructordeclarator :  simplename LBRACE  RBRACE  { $1 }
+   |  simplename LBRACE formalparameterlist RBRACE  { Empty }
 
-constructorbody  : LBRACKET RBRACKET { }
-   | LBRACKET explicitconstructorinvocation  RBRACKET { }
-   | LBRACKET blockstatements  RBRACKET { }
-   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { }
+constructorbody  : LBRACKET RBRACKET { Empty }
+   | LBRACKET explicitconstructorinvocation  RBRACKET { Empty }
+   | LBRACKET blockstatements  RBRACKET { Empty }
+   | LBRACKET explicitconstructorinvocation blockstatements RBRACKET { Empty }
 
-methodheader  : type methoddeclarator { }
-   | modifiers type methoddeclarator { }
-   | VOID methoddeclarator { }
-   | modifiers VOID methoddeclarator { }
+methodheader  : type methoddeclarator { Empty }
+--    | modifiers type methoddeclarator { $1 $2 $3 }
+--    | VOID methoddeclarator { $2 }
+--    | modifiers VOID methoddeclarator { $1 $3 }
 
-type             : primitivetype { }
-   | referencetype { }
+type             : primitivetype { $1 }
+   | referencetype { $1 }
+variabledeclarators : variabledeclarator { [$1] }
+  | variabledeclarators  COMMA  variabledeclarator { $1 ++ [$3] }
 
-variabledeclarators : variabledeclarator { $1 }
-   | variabledeclarators  COMMA  variabledeclarator { $1, $3 }
+methodbody       : block { $1 }
+   | SEMICOLON {  Empty }
 
-methodbody       : block { }
-   | SEMICOLON { }
+blockstatements  : blockstatement { [$1] }
+   | blockstatements blockstatement { $1 ++ $2 }
 
-blockstatements  : blockstatement { }
-   | blockstatements blockstatement { }
+formalparameterlist : formalparameter { [$1] }
+   | formalparameterlist  COMMA  formalparameter { $1 ++[$2] }
 
-formalparameterlist : formalparameter { }
-   | formalparameterlist  COMMA  formalparameter{ }
+explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { This }
+   | THIS LBRACE argumentlist  RBRACE   SEMICOLON  { Empty }
 
-explicitconstructorinvocation : THIS LBRACE  RBRACE   SEMICOLON  { }
-   | THIS LBRACE argumentlist  RBRACE   SEMICOLON  { }
+classtypelist    : classtype { [$1] }
+   | classtypelist  COMMA  classtype { $1 ++[$3] }
 
-classtypelist    : classtype { }
-   | classtypelist  COMMA  classtype { }
+methoddeclarator : IDENTIFIER LBRACE  RBRACE  { $1 }
+   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { Empty }
 
-methoddeclarator : IDENTIFIER LBRACE  RBRACE  { }
-   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { }
+primitivetype    : BOOLEAN { Type("bool") }
+   | numerictype { $1 }
 
-primitivetype    : BOOLEAN { }
-   | numerictype { }
+referencetype    : classorinterfacetype { $1 }
 
-referencetype    : classorinterfacetype { }
+variabledeclarator : variabledeclaratorid { $1 }
+   | variabledeclaratorid ASSIGN variableinitializer { Empty }
 
+blockstatement  : localvariabledeclarationstatement { $1 }
+   | statement  { $1 }
 
-variabledeclarator : variabledeclaratorid { VariableDeclarator($1) }
-   -- | variabledeclaratorid ASSIGN variableinitializer { }
+formalparameter  : type variabledeclaratorid { Empty }
 
-blockstatement  : localvariabledeclarationstatement { }
-   | statement  { }
+argumentlist     : expression { [$1] }
+   | argumentlist  COMMA  expression { $1 ++[$3] }
 
-formalparameter  : type variabledeclaratorid { }
+numerictype      : integraltype { $1 }
 
-argumentlist     : expression { }
-   | argumentlist  COMMA  expression { }
+variabledeclaratorid : IDENTIFIER { $1 }
+variableinitializer  : expression { $1 }
 
-numerictype      : integraltype { }
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { $1 }
 
-variabledeclaratorid : IDENTIFIER { VariableDeclaratorId(Identifier($1)) }
-
-variableinitializer  : expression { }
-
-localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { }
-
-statement        : statementwithouttrailingsubstatement{ }
-   | ifthenstatement { }
-   | ifthenelsestatement { }
-   | whilestatement { }
+statement        : statementwithouttrailingsubstatement { $1  }
+   | ifthenstatement { $1 }
+   | ifthenelsestatement { $1 }
+   | whilestatement { $1 }
          
 
-expression       : assignmentexpression { }
+expression       : assignmentexpression { $1 }
 
-integraltype     : INT  { }
-                 | CHAR { }
+integraltype     : INT  { Type("int") }
+                 | CHAR { Type("char") }
 
-localvariabledeclaration : type variabledeclarators { }
+localvariabledeclaration : type variabledeclarators { Empty }
 
-statementwithouttrailingsubstatement : block { }
-   | emptystatement { }
-   | expressionstatement { }
-   | returnstatement { }
+statementwithouttrailingsubstatement : block { $1 }
+   | emptystatement { Empty }
+   | expressionstatement { $1 }
+   | returnstatement { $1 }
 
-ifthenstatement  : IF LBRACE expression  RBRACE  statement { }
+ifthenstatement  : IF LBRACE expression  RBRACE  statement { Empty }
 
-ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { }
+ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { Empty }
 
-whilestatement   : WHILE LBRACE expression  RBRACE  statement { }
+whilestatement   : WHILE LBRACE expression  RBRACE  statement { While($3, $5) }
 
-assignmentexpression : conditionalexpression { }
-   |  assignment{ }
+assignmentexpression : conditionalexpression { $1 }
+   |  assignment { $1 }
 
-emptystatement  :  SEMICOLON  { }
+emptystatement  :  SEMICOLON  { Empty }
 
-expressionstatement : statementexpression  SEMICOLON { }
+expressionstatement : statementexpression  SEMICOLON { $1 }
 
-returnstatement  : RETURN  SEMICOLON  { }
-   | RETURN expression  SEMICOLON { }
+returnstatement  : RETURN  SEMICOLON  { Empty } 
+   | RETURN expression  SEMICOLON { Return($2) }
 
-statementnoshortif : statementwithouttrailingsubstatement { }
-   | ifthenelsestatementnoshortif { }
-   | whilestatementnoshortif { }
+statementnoshortif : statementwithouttrailingsubstatement { $1 }
+   | ifthenelsestatementnoshortif { $1 }
+   | whilestatementnoshortif { $1 }
 
-conditionalexpression : conditionalorexpression { }
-   | conditionalorexpression QUESMARK expression  COLON  conditionalexpression { }
+conditionalexpression : conditionalorexpression { $1 }
+   | conditionalorexpression QUESMARK expression  COLON  conditionalexpression { Empty }
 
-assignment       :lefthandside assignmentoperator assignmentexpression { }
+assignment       : lefthandside assignmentoperator assignmentexpression { Empty }
  
 
-statementexpression : assignment { }
-   | preincrementexpression { }
-   | predecrementexpression { }
-   | postincrementexpression { }
-   | postdecrementexpression { }
-   | methodinvocation { }
-   | classinstancecreationexpression { }
+statementexpression : assignment { $1 }
+   | preincrementexpression { $1 }
+   | predecrementexpression { $1 }
+   | postincrementexpression { $1 }
+   | postdecrementexpression { $1 }
+   | methodinvocation { $1 }
+   | classinstancecreationexpression { $1 }
 
-ifthenelsestatementnoshortif :IF LBRACE expression  RBRACE  statementnoshortif
-         ELSE statementnoshortif  { }
+ifthenelsestatementnoshortif :IF LBRACE expression  RBRACE  statementnoshortif ELSE statementnoshortif  { Empty }
 
-whilestatementnoshortif : WHILE LBRACE expression  RBRACE  statementnoshortif { }
+whilestatementnoshortif : WHILE LBRACE expression  RBRACE  statementnoshortif { Empty }
 
-conditionalorexpression : conditionalandexpression { }
-   | conditionalorexpression LOGICALOR conditionalandexpression{ }
+conditionalorexpression : conditionalandexpression { Empty }
+   | conditionalorexpression LOGICALOR conditionalandexpression { Empty }
 
-lefthandside     : name { }
+lefthandside     : name { $1 }
 
-assignmentoperator : ASSIGN{ }
-   | TIMESEQUAL { }
-   | DIVIDEEQUAL { }
-   | MODULOEQUAL { }
-   | PLUSEQUAL { }
-   | MINUSEQUAL { }
-   | SHIFTLEFTEQUAL { }
-   | SIGNEDSHIFTRIGHTEQUAL { }
-   | UNSIGNEDSHIFTRIGHTEQUAL { }
-   | ANDEQUAL { }
-   | XOREQUAL { }
-   | OREQUAL{ }
+assignmentoperator : ASSIGN { Empty }
+   | TIMESEQUAL { Empty }
+   | DIVIDEEQUAL { Empty }
+   | MODULOEQUAL { Empty }
+   | PLUSEQUAL { Empty }
+   | MINUSEQUAL { Empty }
+   | SHIFTLEFTEQUAL { Empty }
+   | SIGNEDSHIFTRIGHTEQUAL { Empty }
+   | UNSIGNEDSHIFTRIGHTEQUAL { Empty }
+   | ANDEQUAL { Empty }
+   | XOREQUAL { Empty }
+   | OREQUAL { Empty }
 
-preincrementexpression : INCREMENT unaryexpression { }
+preincrementexpression : INCREMENT unaryexpression { Empty }
 
-predecrementexpression : DECREMENT unaryexpression { }
+predecrementexpression : DECREMENT unaryexpression { Empty }
 
-postincrementexpression : postfixexpression INCREMENT { }
+postincrementexpression : postfixexpression INCREMENT { Empty }
 
-postdecrementexpression : postfixexpression DECREMENT { }
+postdecrementexpression : postfixexpression DECREMENT { Empty }
 
-methodinvocation : name LBRACE   RBRACE  { }
-   | name LBRACE argumentlist RBRACE { }
-   | primary  DOT IDENTIFIER LBRACE RBRACE  { }
-   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { }
+methodinvocation : name LBRACE   RBRACE  { $1 }
+   | name LBRACE argumentlist RBRACE { Empty }
+   | primary  DOT IDENTIFIER LBRACE RBRACE  { Empty }
+   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { Empty }
      
-classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { }
-                 | NEW classtype LBRACE  argumentlist  RBRACE  { }
+classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { Empty }
+                 | NEW classtype LBRACE  argumentlist  RBRACE  { Empty }
 
-conditionalandexpression : inclusiveorexpression { }
+conditionalandexpression : inclusiveorexpression { Empty }
 
-fieldaccess      : primary  DOT IDENTIFIER { }
+fieldaccess      : primary  DOT IDENTIFIER { Empty }
 
-unaryexpression  : preincrementexpression { }
-   | predecrementexpression { }
-   | PLUS unaryexpression { }
-   | MINUS unaryexpression { }
-   | unaryexpressionnotplusminus { }
+unaryexpression  : preincrementexpression { $1 }
+   | predecrementexpression { $1 }
+   | PLUS unaryexpression { Empty }
+   | MINUS unaryexpression { Empty }
+   | unaryexpressionnotplusminus { Empty }
 
-postfixexpression : primary { }
-   | name { }
-   | postincrementexpression { }
-   | postdecrementexpression{ }
+postfixexpression : primary { Empty }
+   | name { $1 }
+   | postincrementexpression { Empty }
+   | postdecrementexpression { Empty }
 
-primary   : primarynonewarray { }
+primary   : primarynonewarray { Empty }
 
-inclusiveorexpression : exclusiveorexpression { }
-   | inclusiveorexpression OR exclusiveorexpression { }
+inclusiveorexpression : exclusiveorexpression { Empty }
+   | inclusiveorexpression OR exclusiveorexpression { Empty }
 
-primarynonewarray : literal { }
-   | THIS { }
-   | LBRACE expression RBRACE  { }
-                 | classinstancecreationexpression { }
-   | fieldaccess { }
-   | methodinvocation { }
+primarynonewarray : literal { $1 }
+   | THIS { This }
+   | LBRACE expression RBRACE  { Empty }
+                 | classinstancecreationexpression { Empty }
+   | fieldaccess { Empty }
+   | methodinvocation { Empty }
 
-unaryexpressionnotplusminus : postfixexpression { }
-          | TILDE unaryexpression { }
-   | EXCLMARK unaryexpression { }
-   | castexpression{ }
+unaryexpressionnotplusminus : postfixexpression { Empty }
+          | TILDE unaryexpression { Empty }
+   | EXCLMARK unaryexpression { Empty }
+   | castexpression { Empty }
 
-exclusiveorexpression : andexpression { }
-   | exclusiveorexpression XOR andexpression { }
+exclusiveorexpression : andexpression { Empty }
+   | exclusiveorexpression XOR andexpression { Empty }
 
-literal   : INTLITERAL { }
-   | BOOLLITERAL { }
-   | CHARLITERAL { }
-   | STRINGLITERAL { }
-   | JNULL { }
+literal   : INTLITERAL { $1 }
+   | BOOLLITERAL { $1 }
+   | CHARLITERAL { $1 }
+   | STRINGLITERAL { $1 }
+   | JNULL { Jnull }
 
-castexpression  : LBRACE  primitivetype  RBRACE  unaryexpression { }
-    | LBRACE  expression  RBRACE  unaryexpressionnotplusminus{ }
+castexpression  : LBRACE  primitivetype  RBRACE  unaryexpression { Empty }
+    | LBRACE  expression  RBRACE  unaryexpressionnotplusminus{ Empty  }
 
-andexpression    : equalityexpression { }
-   | andexpression AND equalityexpression { }
+andexpression    : equalityexpression { Empty }
+   | andexpression AND equalityexpression { Empty }
 
-equalityexpression : relationalexpression { }
-   | equalityexpression EQUAL relationalexpression { }
-   | equalityexpression NOTEQUAL relationalexpression { }
+equalityexpression : relationalexpression { Empty }
+   | equalityexpression EQUAL relationalexpression { Empty }
+   | equalityexpression NOTEQUAL relationalexpression { Empty }
 
-relationalexpression : shiftexpression { }
-   | relationalexpression LESS shiftexpression { }
-   | relationalexpression GREATER shiftexpression { }
-   | relationalexpression LESSEQUAL shiftexpression { }
-   | relationalexpression GREATEREQUAL shiftexpression { }
-   | relationalexpression INSTANCEOF referencetype { }
+relationalexpression : shiftexpression { Empty }
+   | relationalexpression LESS shiftexpression { Empty }
+   | relationalexpression GREATER shiftexpression { Empty }
+   | relationalexpression LESSEQUAL shiftexpression { Empty }
+   | relationalexpression GREATEREQUAL shiftexpression { Empty }
+   | relationalexpression INSTANCEOF referencetype { Empty }
 
-shiftexpression  : additiveexpression { }
+shiftexpression  : additiveexpression { Empty }
 
-additiveexpression : multiplicativeexpression { }
-   | additiveexpression PLUS multiplicativeexpression { }
-   | additiveexpression MINUS multiplicativeexpression { }
+additiveexpression : multiplicativeexpression { Empty }
+   | additiveexpression PLUS multiplicativeexpression { Empty }
+   | additiveexpression MINUS multiplicativeexpression { Empty }
 
-multiplicativeexpression : unaryexpression { }
-   | multiplicativeexpression MUL unaryexpression { }
-   | multiplicativeexpression DIV unaryexpression { }
-   | multiplicativeexpression MOD unaryexpression { }
+multiplicativeexpression : unaryexpression { Empty }
+   | multiplicativeexpression MUL unaryexpression { Empty }
+   | multiplicativeexpression DIV unaryexpression { Empty }
+   | multiplicativeexpression MOD unaryexpression { Empty }
 
 
 {
-parse = name . alexScanTokens
+parse = modifiers . alexScanTokens 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
