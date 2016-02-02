@@ -6,13 +6,13 @@ import JavaParserHelper
 }
 %name compilationunit
 %name typedeclarations
-%name parse1 name
+%name name
 %name typedeclaration
 %name qualifiedname
 %name simplename
 %name classdeclaration
 %name classbody
-%name parse2 modifiers
+%name modifiers
 %name modifier
 %name classbodydeclarations
 %name classtype
@@ -180,12 +180,25 @@ import JavaParserHelper
 
 %%
 
+compilationunit  : typedeclarations { $1 }
+
+typedeclarations : typedeclaration { [$1] }
+   | typedeclarations typedeclaration { $1 ++ [$2] }
+
 name             : qualifiedname { $1 }
    | simplename { $1 } 
+
+typedeclaration  : classdeclaration { $1 }
 
 qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3] }
 
 simplename       : IDENTIFIER { [$1] }
+
+classdeclaration : CLASS IDENTIFIER classbody { Class(Type($2), fst($3), snd($3)) }
+--                | modifiers CLASS IDENTIFIER classbody { $1 Class($3, $4) }
+
+classbody        : LBRACKET RBRACKET  { ([], []) }
+--   | LBRACKET classbodydeclarations  RBRACKET { $2 }
 
 modifiers        : modifier { [$1] }
   | modifiers modifier { $1 ++ [$2] }
@@ -196,8 +209,11 @@ modifier         : PUBLIC { Public }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
 
+block            : LBRACKET   RBRACKET { Block([Empty])}
+--   | LBRACKET  blockstatements  RBRACKET { Block($1) }
+
 {
-parse = parse1 . alexScanTokens
+parse = compilationunit . alexScanTokens
 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
