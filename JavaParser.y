@@ -198,16 +198,53 @@ classdeclaration : CLASS IDENTIFIER classbody { Class(Type($2), fst($3), snd($3)
 --                | modifiers CLASS IDENTIFIER classbody { $1 Class($3, $4) }
 
 classbody        : LBRACKET RBRACKET  { ([], []) }
---   | LBRACKET classbodydeclarations  RBRACKET { $2 }
+  | LBRACKET classbodydeclarations  RBRACKET { $2 }
 
 modifiers        : modifier { [$1] }
   | modifiers modifier { $1 ++ [$2] }
+
+classbodydeclarations :  classbodydeclaration { (fieldDeclToList $1, []) }
+   | classbodydeclarations classbodydeclaration { (fst($1) ++ fieldDeclToList $2, []) }
 
 modifier         : PUBLIC { Public }
    | PROTECTED { Protected }
                  | PRIVATE { Private }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
+
+classtype        : classorinterfacetype{ $1 }
+
+classbodydeclaration : classmemberdeclaration { $1  }
+--   | constructordeclaration { $1 }
+
+classorinterfacetype : name { $1 }
+
+classmemberdeclaration : fielddeclaration { $1 }
+--   | methoddeclaration { ([], [$1]) }
+
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
+--    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
+
+type             : primitivetype { $1 }
+--   | referencetype { $1 }
+
+variabledeclarators : variabledeclarator { $1 }
+  | variabledeclarators  COMMA  variabledeclarator { $1 ++ ", " ++ $3 }
+
+variabledeclarator : variabledeclaratorid { $1 }
+--   | variabledeclaratorid ASSIGN variableinitializer { Empty }
+
+variabledeclaratorid : IDENTIFIER { $1 }
+
+primitivetype    : BOOLEAN { Type("bool") }
+   | numerictype { $1 }
+
+-- referencetype    : classorinterfacetype { $1 }
+
+numerictype      : integraltype { $1 }
+
+integraltype     : INT  { Type("int") }
+                 | CHAR { Type("char") }
 
 block            : LBRACKET   RBRACKET { Block([Empty])}
 --   | LBRACKET  blockstatements  RBRACKET { Block($1) }
