@@ -21,7 +21,7 @@ import JavaParserHelper
 %name classmemberdeclaration
 %name constructordeclaration
 %name fielddeclaration
-%name methoddeclaration
+%name parse1 methoddeclaration
 %name block
 %name constructordeclarator
 %name constructorbody
@@ -204,7 +204,7 @@ modifiers        : modifier { [$1] }
   | modifiers modifier { $1 ++ [$2] }
 
 classbodydeclarations :  classbodydeclaration { $1 }
-   | classbodydeclarations classbodydeclaration { (fst($1) ++ fst($2), snd($1) ++ snd($2)) }
+  | classbodydeclarations classbodydeclaration { (fst($1) ++ fst($2), snd($1) ++ snd($2)) }
 
 modifier         : PUBLIC { Public }
    | PROTECTED { Protected }
@@ -212,7 +212,7 @@ modifier         : PUBLIC { Public }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
 
-classtype        : classorinterfacetype{ $1 }
+-- classtype        : classorinterfacetype{ $1 }
 
 classbodydeclaration : classmemberdeclaration { $1  }
 --   | constructordeclaration { $1 }
@@ -220,7 +220,7 @@ classbodydeclaration : classmemberdeclaration { $1  }
 classorinterfacetype : name { $1 }
 
 classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
---  | methoddeclaration { MethodDeclToList($1) }
+--  | methoddeclaration { methodDeclToList($1) }
 
 fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
 --    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
@@ -236,6 +236,12 @@ variabledeclarator : variabledeclaratorid { $1 }
 
 variabledeclaratorid : IDENTIFIER { $1 }
 
+methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
+
+methodheader  : type methoddeclarator { ($1, $2) }
+
+methodbody       : block { Block([Empty]) }
+
 primitivetype    : BOOLEAN { Type("bool") }
    | numerictype { $1 }
 
@@ -249,8 +255,10 @@ integraltype     : INT  { Type("int") }
 block            : LBRACKET   RBRACKET { Block([Empty])}
 --   | LBRACKET  blockstatements  RBRACKET { Block($1) }
 
+methoddeclarator : IDENTIFIER LBRACE  RBRACE  { ($1, []) }
+
 {
-parse = compilationunit . alexScanTokens
+parse = parse1 . alexScanTokens
 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
