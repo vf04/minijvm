@@ -1070,7 +1070,7 @@ happyReduction_95 _ _  = notHappyAtAll
 happyReduce_96 = happySpecReduce_1  95 happyReduction_96
 happyReduction_96 (HappyAbsSyn98  happy_var_1)
 	 =  HappyAbsSyn95
-		 ((fieldDeclToList happy_var_1, [])
+		 (happy_var_1
 	)
 happyReduction_96 _  = notHappyAtAll 
 
@@ -1078,7 +1078,7 @@ happyReduce_97 = happySpecReduce_2  95 happyReduction_97
 happyReduction_97 (HappyAbsSyn98  happy_var_2)
 	(HappyAbsSyn95  happy_var_1)
 	 =  HappyAbsSyn95
-		 ((fst(happy_var_1) ++ fieldDeclToList happy_var_2, [])
+		 ((fst(happy_var_1) ++ fst(happy_var_2), snd(happy_var_1) ++ snd(happy_var_2))
 	)
 happyReduction_97 _ _  = notHappyAtAll 
 
@@ -1136,7 +1136,7 @@ happyReduction_105 _  = notHappyAtAll
 happyReduce_106 = happySpecReduce_1  100 happyReduction_106
 happyReduction_106 (HappyAbsSyn101  happy_var_1)
 	 =  HappyAbsSyn100
-		 (happy_var_1
+		 (fieldDeclToList(happy_var_1)
 	)
 happyReduction_106 _  = notHappyAtAll 
 

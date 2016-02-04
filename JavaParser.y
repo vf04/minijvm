@@ -203,8 +203,8 @@ classbody        : LBRACKET RBRACKET  { ([], []) }
 modifiers        : modifier { [$1] }
   | modifiers modifier { $1 ++ [$2] }
 
-classbodydeclarations :  classbodydeclaration { (fieldDeclToList $1, []) }
-   | classbodydeclarations classbodydeclaration { (fst($1) ++ fieldDeclToList $2, []) }
+classbodydeclarations :  classbodydeclaration { $1 }
+   | classbodydeclarations classbodydeclaration { (fst($1) ++ fst($2), snd($1) ++ snd($2)) }
 
 modifier         : PUBLIC { Public }
    | PROTECTED { Protected }
@@ -219,8 +219,8 @@ classbodydeclaration : classmemberdeclaration { $1  }
 
 classorinterfacetype : name { $1 }
 
-classmemberdeclaration : fielddeclaration { $1 }
---   | methoddeclaration { ([], [$1]) }
+classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
+--  | methoddeclaration { MethodDeclToList($1) }
 
 fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
 --    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
