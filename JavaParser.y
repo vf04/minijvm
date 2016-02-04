@@ -21,7 +21,7 @@ import JavaParserHelper
 %name classmemberdeclaration
 %name constructordeclaration
 %name fielddeclaration
-%name parse1 methoddeclaration
+%name methoddeclaration
 %name block
 %name constructordeclarator
 %name constructorbody
@@ -220,7 +220,7 @@ classbodydeclaration : classmemberdeclaration { $1  }
 classorinterfacetype : name { $1 }
 
 classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
---  | methoddeclaration { methodDeclToList($1) }
+  | methoddeclaration { methodDeclToList($1) }
 
 fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
 --    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
@@ -258,7 +258,7 @@ block            : LBRACKET   RBRACKET { Block([Empty])}
 methoddeclarator : IDENTIFIER LBRACE  RBRACE  { ($1, []) }
 
 {
-parse = parse1 . alexScanTokens
+parse = compilationunit . alexScanTokens
 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
