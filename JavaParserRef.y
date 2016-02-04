@@ -279,7 +279,7 @@ variabledeclarator : variabledeclaratorid { $1 }
 blockstatement  : localvariabledeclarationstatement { $1 }
    | statement  { $1 }
 
-formalparameter  : type variabledeclaratorid { Empty }
+formalparameter  : type variabledeclaratorid { ($1, $3) }
 
 argumentlist     : expression { [$1] }
    | argumentlist  COMMA  expression { $1 ++[$3] }

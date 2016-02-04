@@ -256,6 +256,11 @@ block            : LBRACKET   RBRACKET { Block([Empty])}
 --   | LBRACKET  blockstatements  RBRACKET { Block($1) }
 
 methoddeclarator : IDENTIFIER LBRACE  RBRACE  { ($1, []) }
+   | IDENTIFIER LBRACE formalparameterlist  RBRACE  { ($1, $3) }
+formalparameterlist : formalparameter { [$1] }
+   | formalparameterlist  COMMA  formalparameter { $1 ++[$3] }
+
+formalparameter  : type variabledeclaratorid { ($1, $2) }
 
 {
 parse = compilationunit . alexScanTokens
