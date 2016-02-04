@@ -241,7 +241,7 @@ methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), 
 methodheader  : type methoddeclarator { ($1, $2) }
   | VOID methoddeclarator { (Type(""), $2) }
 
-methodbody       : block { Block([Empty]) }
+methodbody       : block { $1 }
 
 primitivetype    : BOOLEAN { Type("bool") }
    | numerictype { $1 }
@@ -254,7 +254,7 @@ integraltype     : INT  { Type("int") }
                  | CHAR { Type("char") }
 
 block            : LBRACKET   RBRACKET { Block([Empty])}
---   | LBRACKET  blockstatements  RBRACKET { Block($1) }
+  | LBRACKET  blockstatements  RBRACKET { Block($2) }
 
 methoddeclarator : IDENTIFIER LBRACE  RBRACE  { ($1, []) }
    | IDENTIFIER LBRACE formalparameterlist  RBRACE  { ($1, $3) }
@@ -262,6 +262,15 @@ formalparameterlist : formalparameter { [$1] }
    | formalparameterlist  COMMA  formalparameter { $1 ++[$3] }
 
 formalparameter  : type variabledeclaratorid { ($1, $2) }
+
+blockstatements  : blockstatement { [$1] }
+   | blockstatements blockstatement { $1 ++ [$2] }
+
+blockstatement  : localvariabledeclarationstatement { $1 }
+
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), snd($1)) }
+
+localvariabledeclaration : type variabledeclarators { ($1, $2) }
 
 {
 parse = compilationunit . alexScanTokens
