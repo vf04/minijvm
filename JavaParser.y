@@ -239,6 +239,7 @@ variabledeclaratorid : IDENTIFIER { $1 }
 methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
 
 methodheader  : type methoddeclarator { ($1, $2) }
+  | VOID methoddeclarator { (Type(""), $2) }
 
 methodbody       : block { Block([Empty]) }
 
