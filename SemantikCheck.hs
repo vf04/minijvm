@@ -22,7 +22,7 @@ typecheckExpr (LocalOrFieldVar(varName)) localVars classes =
 				thisVar = getMaybeLocalVar "this" localVars
 				thisClassType = getTypeFromLocalVar $ fromJustOrError thisVar "'this' var was not found. Cannot evaluate field vars."
 				thisClass = getMaybeClass thisClassType classes
-				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass $ fromJustOrError thisClass $ "Class " ++ (getTypeNameFromType thisClassType) ++ " was not found."
+				fieldVarDecl = getMaybeFieldDecl varName $ getFieldDeclsFromClass (fromJustOrError thisClass $ "Class " ++ (getTypeNameFromType thisClassType) ++ " was not found.") classes
 				fieldVarType = getTypeFromFieldDecl $ fromJustOrError fieldVarDecl $ "var '" ++ varName ++ "' is neither a local var nor a field var in " ++ (getTypeNameFromType thisClassType)
 			in
 			TypedExpr(LocalOrFieldVar(varName),fieldVarType)
@@ -37,7 +37,7 @@ typecheckExpr (InstVar(expr, instVarName)) localVars classes =
 		instanceExpr = typecheckExpr expr localVars classes
 		instanceType = getTypeFromExpr instanceExpr
 		instanceClass = getMaybeClass instanceType classes
-		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass $ fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var " ++ instVarName
+		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass (fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var " ++ instVarName) classes
 		instVarType = getTypeFromFieldDecl $ fromJustOrError instVarFieldDecl $ "field declaration " ++ instVarName ++ " was not found in class " ++ (getTypeNameFromType instanceType)
 	in
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)
@@ -169,7 +169,7 @@ typecheckStmtExpr (MethodCall(instanceExpr, methodName, arguments)) localVars cl
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
 		instanceClass = getMaybeClass instanceType classes
-		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass $ fromJustOrError instanceClass $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName
+		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass (fromJustOrError instanceClass $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName) classes
 		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
 		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
 		declArgTypes = map getTypeFromLocalVar methodArgs
@@ -312,11 +312,27 @@ getTypeFromFieldDecl(FieldDecl(typeName,_)) = typeName
 getTypeFromClass :: Class -> Type
 getTypeFromClass(Class(classType,_,_,_)) = classType
 
-getFieldDeclsFromClass :: Class -> [FieldDecl]
-getFieldDeclsFromClass(Class(_,fieldDecls,_,_)) = fieldDecls
+getClasses :: [Type] -> [Class] -> [Class]
+getClasses classNames classes =
+	map (\className -> fromJustOrError (getMaybeClass className classes) $ "class " ++ (getTypeNameFromType className) ++ " was not found") classNames
 
-getMethodDeclsFromClass :: Class -> [MethodDecl]
-getMethodDeclsFromClass(Class(_,_,methodDecls,_)) = methodDecls
+getFieldDeclsFromClass :: Class -> [Class] -> [FieldDecl]
+getFieldDeclsFromClass (Class(_,fieldDecls,_,[])) _ = fieldDecls
+getFieldDeclsFromClass (Class(className,fieldDecls,_,superClasses)) classes = 
+	let
+		superClassDecls = getClasses superClasses classes
+		superClassFieldDecls = concat $ map (\superClassDecl -> getFieldDeclsFromClass superClassDecl []) superClassDecls
+	in
+		fieldDecls ++ superClassFieldDecls
+
+getMethodDeclsFromClass :: Class -> [Class] -> [MethodDecl]
+getMethodDeclsFromClass (Class(_,_,methodDecls,[])) _ = methodDecls
+getMethodDeclsFromClass (Class(_,_,methodDecls,superClasses)) classes =
+	let
+		superClassDecls = getClasses superClasses classes
+		superClassMethodDecls = concat $ map (\superClassDecl -> getMethodDeclsFromClass superClassDecl []) superClassDecls
+	in
+		methodDecls ++ superClassMethodDecls
 
 getTypeFromMethodDecl :: MethodDecl -> Type
 getTypeFromMethodDecl(MethodDecl(typeName,_,_,_)) = typeName
