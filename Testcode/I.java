@@ -1,5 +1,5 @@
 
-public class I {
+class I {
 	int ackermann(int n,int m) {
 		if (n == 0)
 		{

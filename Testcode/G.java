@@ -1,5 +1,5 @@
 
-public class G {
+class G {
 	E myE;
 	
 	E getE() {

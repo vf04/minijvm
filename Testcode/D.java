@@ -1,5 +1,5 @@
 
-public class D {
+class D {
 	D getThis() {
 		return this;
 	}

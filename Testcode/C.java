@@ -1,5 +1,5 @@
 
-public class C {
+class C {
 	B b;
 	
 	int getXFromB() {

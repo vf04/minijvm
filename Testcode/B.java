@@ -1,5 +1,5 @@
 
-public class B {
+class B {
 
 	int x;
 	int y;
