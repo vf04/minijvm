@@ -211,16 +211,16 @@ typecheckMethod (MethodDecl(methodType, methodName, arguments, stmt)) thisType c
 			error $ "return type " ++ (getTypeNameFromType methodType) ++ " of method " ++ methodName ++ " in class " ++ (getTypeNameFromType thisType) ++ "does not exist"
 
 typecheckClass :: Class -> [Class] -> Class
-typecheckClass (Class(className, fieldDecls, methodDecls)) classes =
+typecheckClass (Class(className, fieldDecls, methodDecls,superClasses)) classes =
 	let
-		fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
+		fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,superClasses)) -> typeExists fieldType classes) fieldDecls
 	in
 		if fieldDeclTypesExist
 		then
 			let
 				typedMethods = map (\methodDecl -> typecheckMethod methodDecl className classes) methodDecls
 			in
-				Class(className, fieldDecls, typedMethods)
+				Class(className, fieldDecls, typedMethods,superClasses)
 		else
 			error $ "One or multiple field declarations of class " ++ (getTypeNameFromType className) ++ " name an invalid type"
 
@@ -275,8 +275,8 @@ getTypeOfBinary "==" typeA typeB
 
 getMaybeClass :: Type -> [Class] -> Maybe Class
 getMaybeClass _ [] = Nothing
-getMaybeClass className (Class(name, fieldDecl, methodDecl) : classes)
-	| className == name = Just (Class(name, fieldDecl, methodDecl))
+getMaybeClass className (Class(name, fieldDecl, methodDecl, superClasses) : classes)
+	| className == name = Just (Class(name, fieldDecl, methodDecl, superClasses))
 	| otherwise = getMaybeClass className classes
 
 getMaybeFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
@@ -308,13 +308,13 @@ getTypeFromFieldDecl :: FieldDecl -> Type
 getTypeFromFieldDecl(FieldDecl(typeName,_)) = typeName
 
 getTypeFromClass :: Class -> Type
-getTypeFromClass(Class(classType,_,_)) = classType
+getTypeFromClass(Class(classType,_,_,_)) = classType
 
 getFieldDeclsFromClass :: Class -> [FieldDecl]
-getFieldDeclsFromClass(Class(_,fieldDecls,_)) = fieldDecls
+getFieldDeclsFromClass(Class(_,fieldDecls,_,_)) = fieldDecls
 
 getMethodDeclsFromClass :: Class -> [MethodDecl]
-getMethodDeclsFromClass(Class(_,_,methodDecls)) = methodDecls
+getMethodDeclsFromClass(Class(_,_,methodDecls,_)) = methodDecls
 
 getTypeFromMethodDecl :: MethodDecl -> Type
 getTypeFromMethodDecl(MethodDecl(typeName,_,_,_)) = typeName
