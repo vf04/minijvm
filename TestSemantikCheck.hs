@@ -37,7 +37,12 @@ testProgramms =
 		[Class(Type "I",[],
 			[MethodDecl(Type "int","ackermann",[(Type "int","n"),(Type "int","m")],If(Binary("==",LocalOrFieldVar("n"),Integer(0)),Return(Just(Binary("+",LocalOrFieldVar("m"),Integer(1)))),
 				Just (If(Binary("==",LocalOrFieldVar("m"),Integer(0)),Return(Just(StmtExprExpr(MethodCall(This,"ackermann",[Binary("-",LocalOrFieldVar("n"),Integer(1)),Integer(1)])))),
-					Just (Return(Just(StmtExprExpr(MethodCall(This,"ackermann",[Binary("-",LocalOrFieldVar("n"),Integer(1)),StmtExprExpr(MethodCall(This,"ackermann",[LocalOrFieldVar("n"),Binary("-",LocalOrFieldVar("m"),Integer(1))]))])))))))))],[])]
+					Just (Return(Just(StmtExprExpr(MethodCall(This,"ackermann",[Binary("-",LocalOrFieldVar("n"),Integer(1)),StmtExprExpr(MethodCall(This,"ackermann",[LocalOrFieldVar("n"),Binary("-",LocalOrFieldVar("m"),Integer(1))]))])))))))))],[])],
+		[Class(Type "J",[],
+			[MethodDecl(Type "int","getX",[],Return(Just(LocalOrFieldVar("x")))),
+			MethodDecl(Type "int","callAddYToX",[(Type "int","y")],Return(Just(StmtExprExpr(MethodCall(This,"addYToX",[LocalOrFieldVar("y")])))))],[Type "K"]),
+		Class(Type "K",[FieldDecl(Type "int","x")],
+			[MethodDecl(Type "int","addYToX",[(Type "int","y")],Return(Just(Binary("+",LocalOrFieldVar("x"),LocalOrFieldVar("y")))))],[])]
 	]
 
 main :: IO ()
