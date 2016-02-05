@@ -267,10 +267,25 @@ blockstatements  : blockstatement { [$1] }
    | blockstatements blockstatement { $1 ++ [$2] }
 
 blockstatement  : localvariabledeclarationstatement { $1 }
+   | statement  { $1 }
 
 localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), snd($1)) }
 
 localvariabledeclaration : type variabledeclarators { ($1, $2) }
+
+statement        : statementwithouttrailingsubstatement { $1  }
+
+statementwithouttrailingsubstatement : block { $1 }
+   | emptystatement { $1 }
+--  | expressionstatement { $1 }
+  | returnstatement { $1 }
+
+emptystatement  :  SEMICOLON  { Empty }
+
+-- expressionstatement : statementexpression  SEMICOLON { $1 }
+
+returnstatement  : RETURN  SEMICOLON  { Return(Jnull) }
+--   | RETURN expression  SEMICOLON { Return($2) }
 
 {
 parse = compilationunit . alexScanTokens
