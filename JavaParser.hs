@@ -1201,7 +1201,7 @@ happyReduction_91 (HappyAbsSyn93  happy_var_3)
 	(HappyTerminal (IDENTIFIER happy_var_2))
 	_
 	 =  HappyAbsSyn92
-		 (Class(Type(happy_var_2), fst(happy_var_3), snd(happy_var_3))
+		 (Class(Type(happy_var_2), fst(happy_var_3), snd(happy_var_3), [])
 	)
 happyReduction_91 _ _ _  = notHappyAtAll 
 
