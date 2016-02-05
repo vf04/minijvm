@@ -93,12 +93,14 @@ typecheckStmt (Block(firstStmt : stmts)) localVars classes =
 
 typecheckStmt (Block([])) _ _ = TypedStmt(Block([]),Type "void")
 
-typecheckStmt (Return(expr)) localVars classes =
+typecheckStmt (Return(Just expr)) localVars classes =
 	let
 		typedExpr = typecheckExpr expr localVars classes
 		exprType = getTypeFromExpr typedExpr
 	in
-		TypedStmt(Return(typedExpr),exprType)
+		TypedStmt(Return(Just typedExpr),exprType)
+typecheckStmt (Return(Nothing)) localVars classes =
+		TypedStmt(Return(Nothing),Type "void")
 
 typecheckStmt (While(conditionExpr, stmt)) localVars classes =
 	let
