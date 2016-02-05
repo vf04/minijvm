@@ -239,7 +239,7 @@ variabledeclaratorid : IDENTIFIER { $1 }
 methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
 
 methodheader  : type methoddeclarator { ($1, $2) }
-  | VOID methoddeclarator { (Type(""), $2) }
+  | VOID methoddeclarator { (Type("void"), $2) }
 
 methodbody       : block { $1 }
 
@@ -284,7 +284,7 @@ emptystatement  :  SEMICOLON  { Empty }
 
 -- expressionstatement : statementexpression  SEMICOLON { $1 }
 
-returnstatement  : RETURN  SEMICOLON  { Return(Jnull) }
+returnstatement  : RETURN  SEMICOLON  { Return(Nothing) }
 --   | RETURN expression  SEMICOLON { Return($2) }
 
 {

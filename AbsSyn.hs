@@ -10,7 +10,7 @@ data FieldDecl = FieldDecl(Type, String) deriving (Show)
 data MethodDecl = MethodDecl(Type, String,[(Type,String)], Stmt) deriving (Show)
 
 data Stmt = Block([Stmt])
-          | Return( Expr )
+          | Return( Maybe Expr )
           | While( Expr , Stmt )
 --          | LocalVarDecl(VariableDeclarator)
           | LocalVarDecl(Type, String)

@@ -1375,7 +1375,7 @@ happyReduce_115 = happySpecReduce_2  106 happyReduction_115
 happyReduction_115 (HappyAbsSyn112  happy_var_2)
 	_
 	 =  HappyAbsSyn106
-		 ((Type(""), happy_var_2)
+		 ((Type("void"), happy_var_2)
 	)
 happyReduction_115 _ _  = notHappyAtAll 
 
@@ -1560,7 +1560,7 @@ happyReduce_140 = happySpecReduce_2  122 happyReduction_140
 happyReduction_140 _
 	_
 	 =  HappyAbsSyn122
-		 (Return(Jnull)
+		 (Return(Nothing)
 	)
 
 happyNewToken action sts stk [] =
