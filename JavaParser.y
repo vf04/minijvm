@@ -222,16 +222,16 @@ classorinterfacetype : name { $1 }
 classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
   | methoddeclaration { methodDeclToList($1) }
 
-fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
-  | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, $3) }
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , getVarDeclIds($2)) }
+  | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, getVarDeclIds($3)) }
 
 type             : primitivetype { $1 }
   | referencetype { $1 }
 
-variabledeclarators : variabledeclarator { $1 }
-  | variabledeclarators  COMMA  variabledeclarator { $1 ++ ", " ++ $3 }
+variabledeclarators : variabledeclarator { [$1] }
+  | variabledeclarators  COMMA  variabledeclarator { $1 ++ [$3] }
 
-variabledeclarator : variabledeclaratorid { $1 }
+variabledeclarator : variabledeclaratorid { ([$1], []) }
 --   | variabledeclaratorid ASSIGN variableinitializer { Empty }
 
 variabledeclaratorid : IDENTIFIER { $1 }
@@ -272,7 +272,7 @@ blockstatement  : localvariabledeclarationstatement { $1 }
 
 localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), snd($1)) }
 
-localvariabledeclaration : type variabledeclarators { ($1, $2) }
+localvariabledeclaration : type variabledeclarators { ($1, getVarDeclIds($2)) }
 
 statement        : statementwithouttrailingsubstatement { $1  }
 

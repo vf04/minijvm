@@ -2064,7 +2064,7 @@ happyReduction_109 _
 	(HappyAbsSyn103  happy_var_2)
 	(HappyAbsSyn102  happy_var_1)
 	 =  HappyAbsSyn101
-		 (FieldDecl(happy_var_1 , happy_var_2)
+		 (FieldDecl(happy_var_1 , getVarDeclIds(happy_var_2))
 	)
 happyReduction_109 _ _ _  = notHappyAtAll 
 
@@ -2075,7 +2075,7 @@ happyReduction_110 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn101
-		 (FieldDecl(happy_var_2, happy_var_3)
+		 (FieldDecl(happy_var_2, getVarDeclIds(happy_var_3))
 	) `HappyStk` happyRest
 
 happyReduce_111 = happySpecReduce_1  102 happyReduction_111
@@ -2095,7 +2095,7 @@ happyReduction_112 _  = notHappyAtAll
 happyReduce_113 = happySpecReduce_1  103 happyReduction_113
 happyReduction_113 (HappyAbsSyn104  happy_var_1)
 	 =  HappyAbsSyn103
-		 (happy_var_1
+		 ([happy_var_1]
 	)
 happyReduction_113 _  = notHappyAtAll 
 
@@ -2104,14 +2104,14 @@ happyReduction_114 (HappyAbsSyn104  happy_var_3)
 	_
 	(HappyAbsSyn103  happy_var_1)
 	 =  HappyAbsSyn103
-		 (happy_var_1 ++ ", " ++ happy_var_3
+		 (happy_var_1 ++ [happy_var_3]
 	)
 happyReduction_114 _ _ _  = notHappyAtAll 
 
 happyReduce_115 = happySpecReduce_1  104 happyReduction_115
 happyReduction_115 (HappyAbsSyn105  happy_var_1)
 	 =  HappyAbsSyn104
-		 (happy_var_1
+		 (([happy_var_1], [])
 	)
 happyReduction_115 _  = notHappyAtAll 
 
@@ -2301,7 +2301,7 @@ happyReduce_140 = happySpecReduce_2  120 happyReduction_140
 happyReduction_140 (HappyAbsSyn103  happy_var_2)
 	(HappyAbsSyn102  happy_var_1)
 	 =  HappyAbsSyn120
-		 ((happy_var_1, happy_var_2)
+		 ((happy_var_1, getVarDeclIds(happy_var_2))
 	)
 happyReduction_140 _ _  = notHappyAtAll 
 
