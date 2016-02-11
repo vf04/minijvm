@@ -19,7 +19,7 @@ typecheckExpr Super localVars classes =
 		thisClassDecl = fromJustOrError (getMaybeClass thisClassType classes) $ "class " ++ (getTypeNameFromType thisClassType) ++ " was not found when checking super expression"
 		superClasses = getSuperClassTypesFromClass thisClassDecl
 	in
-		TypedExpr(Super,typeListUpperBound superClasses)
+		TypedExpr(Super,typeListUpperBound superClasses classes)
 
 typecheckExpr (LocalOrFieldVar(varName)) localVars classes =
 	let
@@ -61,7 +61,7 @@ typecheckExpr (Binary(operator, expA, expB)) localVars classes =
 		typedExprB = typecheckExpr expB localVars classes
 		typeA = getTypeFromExpr typedExprA
 		typeB = getTypeFromExpr typedExprB
-		typeOfBinary = getTypeOfBinary operator typeA typeB
+		typeOfBinary = getTypeOfBinary operator typeA typeB classes
 	in TypedExpr(Binary(operator,typedExprA,typedExprB),typeOfBinary)
 
 typecheckExpr (Integer(i)) _ _ = TypedExpr(Integer(i),Type "int")
@@ -96,7 +96,7 @@ typecheckStmt (Block(firstStmt : stmts)) localVars classes =
 		typedBlockOfStmts = typecheckStmt (Block(stmts)) localVars classes
 		typedRestOfStmts = (\(TypedStmt(Block(typedStmts),_)) -> typedStmts) typedBlockOfStmts
 		typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
-		typeOfBlock = typeUpperBound typeOfFirstStmt typeOfBlockOfStmts
+		typeOfBlock = typeUpperBound typeOfFirstStmt typeOfBlockOfStmts classes
 	in
 		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlock)
 
@@ -127,7 +127,7 @@ typecheckStmt (If(conditionExpr, stmtTrue, Nothing)) localVars classes =
 		typedConditionExpr = typecheckExpr conditionExpr localVars classes
 		typedStmtTrue = typecheckStmt stmtTrue localVars classes
 		stmtTrueType = getTypeFromStmt typedStmtTrue
-		upperBoundStmtType = typeUpperBound stmtTrueType (Type "void")
+		upperBoundStmtType = typeUpperBound stmtTrueType (Type "void") classes
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, Nothing),upperBoundStmtType)
 
@@ -138,7 +138,7 @@ typecheckStmt (If(conditionExpr, stmtTrue, Just stmtFalse)) localVars classes =
 		stmtTrueType = getTypeFromStmt typedStmtTrue
 		typedStmtFalse = typecheckStmt stmtFalse localVars classes
 		stmtFalseType = getTypeFromStmt typedStmtFalse
-		upperBoundStmtType = typeUpperBound stmtTrueType stmtFalseType
+		upperBoundStmtType = typeUpperBound stmtTrueType stmtFalseType classes
 	in
 		TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)
 
@@ -160,7 +160,7 @@ typecheckStmtExpr (Assign(expA, expB)) localVars classes =
 		typeA = getTypeFromExpr typedExprA
 		typeB = getTypeFromExpr typedExprB
 	in
-		if isSubtypeOf typeB typeA
+		if isSubtypeOf typeB typeA classes
 		then
 			TypedStmtExpr(Assign(typedExprA,typedExprB),typeA)
 		else
@@ -183,7 +183,7 @@ typecheckStmtExpr (MethodCall(instanceExpr, methodName, arguments)) localVars cl
 		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
 		declArgTypes = map getTypeFromLocalVar methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
-		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType) $ zip declArgTypes actualArgTypes
+		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType classes) $ zip declArgTypes actualArgTypes
 	in
 		if argTypesMatch
 		then
@@ -211,7 +211,7 @@ typecheckMethod (MethodDecl(methodType, methodName, arguments, stmt)) thisType c
 						typedStmt = typecheckStmt stmt localVars classes
 						actualMehtodType = getTypeFromStmt typedStmt
 					in
-						if isSubtypeOf actualMehtodType methodType
+						if isSubtypeOf actualMehtodType methodType classes
 						then
 							MethodDecl(methodType, methodName, arguments, typedStmt)
 						else
@@ -259,48 +259,61 @@ typecheckListOfExpr :: [Expr] -> [(Type, String)] -> [Class] -> [Expr]
 typecheckListOfExpr expressions localVars classes =
 	map (\expr -> typecheckExpr expr localVars classes) expressions
 
-typeListUpperBound :: [Type] -> Type
-typeListUpperBound [a] = a
-typeListUpperBound [a,b] = typeUpperBound a b
-typeListUpperBound (a : rest) = typeUpperBound a $ typeListUpperBound rest
+typeListUpperBound :: [Type] -> [Class] -> Type
+typeListUpperBound [a] _ = a
+typeListUpperBound [a,b] classes = typeUpperBound a b classes
+typeListUpperBound (a : rest) classes = typeUpperBound a (typeListUpperBound rest classes) classes
 
-typeUpperBound :: Type -> Type -> Type
-typeUpperBound (Type "void") x = x
-typeUpperBound x (Type "void") = x
-typeUpperBound (Type "null") x = Type "null"
-typeUpperBound x (Type "null") = Type "null"
-typeUpperBound (Type "bool") (Type "bool") = Type "bool"
-typeUpperBound (Type "bool") (Type "int") = Type "int"
-typeUpperBound (Type "char") (Type "char") = Type "char"
-typeUpperBound (Type "int") (Type "bool") = Type "int"
-typeUpperBound (Type "int") (Type "int") = Type "int"
-typeUpperBound (Type "String") (Type "String") = Type "String"
-typeUpperBound x y
+typeUpperBound :: Type -> Type -> [Class] -> Type
+typeUpperBound (Type "void") x _ = x
+typeUpperBound x (Type "void") _ = x
+typeUpperBound (Type "null") x _ = Type "null"
+typeUpperBound x (Type "null") _ = Type "null"
+typeUpperBound (Type "bool") (Type "bool") _ = Type "bool"
+typeUpperBound (Type "bool") (Type "int") _ = Type "int"
+typeUpperBound (Type "char") (Type "char") _ = Type "char"
+typeUpperBound (Type "int") (Type "bool") _ = Type "int"
+typeUpperBound (Type "int") (Type "int") _ = Type "int"
+typeUpperBound (Type "String") (Type "String") _ = Type "String"
+typeUpperBound x y []
 	| x == y = x
 	|otherwise = Type "Object"
+typeUpperBound x y classes =
+	let
+		xDecl = fromJustOrError (getMaybeClass x classes) $ "could not find class " ++ (getTypeNameFromType x)
+		yDecl = fromJustOrError (getMaybeClass y classes) $ "could not find class " ++ (getTypeNameFromType y)
+		xExpandsY = elem x $ expandListOfSuperClasses (getSuperClassTypesFromClass yDecl) classes
+		yExpandsX = elem y $ expandListOfSuperClasses (getSuperClassTypesFromClass xDecl) classes
+	in
+		if xExpandsY
+		then x
+		else
+			if yExpandsX
+			then y
+			else typeUpperBound x y []
 
-getTypeOfBinary :: String -> Type -> Type -> Type
-getTypeOfBinary "+" typeA typeB = typeUpperBound typeA typeB
-getTypeOfBinary "-" typeA typeB = typeUpperBound typeA typeB
-getTypeOfBinary "*" typeA typeB = typeUpperBound typeA typeB
-getTypeOfBinary "/" typeA typeB = typeUpperBound typeA typeB
-getTypeOfBinary "%" typeA typeB = typeUpperBound typeA typeB
-getTypeOfBinary "&&" (Type "bool") (Type "bool") = Type "bool"
-getTypeOfBinary "||" (Type "bool") (Type "bool") = Type "bool"
-getTypeOfBinary "<" typeA typeB
-	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+getTypeOfBinary :: String -> Type -> Type -> [Class] -> Type
+getTypeOfBinary "+" typeA typeB classes = typeUpperBound typeA typeB classes
+getTypeOfBinary "-" typeA typeB classes = typeUpperBound typeA typeB classes
+getTypeOfBinary "*" typeA typeB classes = typeUpperBound typeA typeB classes
+getTypeOfBinary "/" typeA typeB classes = typeUpperBound typeA typeB classes
+getTypeOfBinary "%" typeA typeB classes = typeUpperBound typeA typeB classes
+getTypeOfBinary "&&" (Type "bool") (Type "bool") _ = Type "bool"
+getTypeOfBinary "||" (Type "bool") (Type "bool") _ = Type "bool"
+getTypeOfBinary "<" typeA typeB classes
+	| (isSubtypeOf typeA typeB classes) || (isSubtypeOf typeB typeA classes) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
-getTypeOfBinary ">" typeA typeB
-	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+getTypeOfBinary ">" typeA typeB classes
+	| (isSubtypeOf typeA typeB classes) || (isSubtypeOf typeB typeA classes) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
-getTypeOfBinary "<=" typeA typeB
-	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+getTypeOfBinary "<=" typeA typeB classes
+	| (isSubtypeOf typeA typeB classes) || (isSubtypeOf typeB typeA classes) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
-getTypeOfBinary ">=" typeA typeB
-	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+getTypeOfBinary ">=" typeA typeB classes
+	| (isSubtypeOf typeA typeB classes) || (isSubtypeOf typeB typeA classes) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
-getTypeOfBinary "==" typeA typeB
-	| (isSubtypeOf typeA typeB) || (isSubtypeOf typeB typeA) = Type "bool"
+getTypeOfBinary "==" typeA typeB classes
+	| (isSubtypeOf typeA typeB classes) || (isSubtypeOf typeB typeA classes) = Type "bool"
 	| otherwise = error $ "cannot compare " ++ (getTypeNameFromType typeA) ++ " and " ++ (getTypeNameFromType typeB)
 
 getMaybeClass :: Type -> [Class] -> Maybe Class
@@ -391,8 +404,8 @@ getTypeFromMethodDecl(MethodDecl(typeName,_,_,_)) = typeName
 getArgsFromMethodDecl :: MethodDecl -> [(Type,String)]
 getArgsFromMethodDecl(MethodDecl(_,_,args,_)) = args
 
-isSubtypeOf :: Type -> Type -> Bool
-isSubtypeOf x y = (typeUpperBound x y) == y
+isSubtypeOf :: Type -> Type -> [Class] -> Bool
+isSubtypeOf x y classes = (typeUpperBound x y classes) == y
 
 removeLocalVar :: String -> [(Type, String)] -> [(Type, String)]
 removeLocalVar varName varList =

@@ -46,7 +46,7 @@ testProgramms =
 		[Class(Type "L",[FieldDecl(Type "int","i")],
 			[MethodDecl(Type "int","getI",[],Return(Just(LocalOrFieldVar("i")))),
 			MethodDecl(Type "char","getSupersI",[],Return(Just(InstVar(Super,"i"))))],[Type "M"]),
-		Class(Type "M",[],[],[Type "N"]),
+		Class(Type "M",[],[MethodDecl(Type "N","getNewM",[],Block([LocalVarDecl(Type "N","myN"),StmtExprStmt(Assign(LocalOrFieldVar("myN"),StmtExprExpr(New(Type "M",[])))),Return(Just(LocalOrFieldVar("myN")))]))],[Type "N"]),
 		Class(Type "N",[FieldDecl(Type "char","i")],[],[])]
 	]
 
