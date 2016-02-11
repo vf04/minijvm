@@ -190,9 +190,9 @@ name             : qualifiedname { $1 }
 
 typedeclaration  : classdeclaration { $1 }
 
-qualifiedname    : name  DOT IDENTIFIER { $1 ++ [$3] }
+qualifiedname    : name  DOT IDENTIFIER { $1 ++ "." ++ $3 }
 
-simplename       : IDENTIFIER { [$1] }
+simplename       : IDENTIFIER { $1 }
 
 classdeclaration : CLASS IDENTIFIER classbody { Class(Type($2), fst($3), snd($3), []) }
   | modifiers CLASS IDENTIFIER classbody { Class(Type($3), fst($4), snd($4), []) }
@@ -212,7 +212,7 @@ modifier         : PUBLIC { Public }
                  | STATIC { Static }
                  | ABSTRACT { Abstract }
 
--- classtype        : classorinterfacetype{ $1 }
+classtype        : classorinterfacetype{ $1 }
 
 classbodydeclaration : classmemberdeclaration { $1  }
 --   | constructordeclaration { $1 }
@@ -226,7 +226,7 @@ fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
   | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, $3) }
 
 type             : primitivetype { $1 }
---   | referencetype { $1 }
+  | referencetype { $1 }
 
 variabledeclarators : variabledeclarator { $1 }
   | variabledeclarators  COMMA  variabledeclarator { $1 ++ ", " ++ $3 }
@@ -247,7 +247,7 @@ methodbody       : block { $1 }
 primitivetype    : BOOLEAN { Type("bool") }
    | numerictype { $1 }
 
--- referencetype    : classorinterfacetype { $1 }
+referencetype    : classorinterfacetype { Type($1) }
 
 numerictype      : integraltype { $1 }
 
