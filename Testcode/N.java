@@ -1,0 +1,4 @@
+
+class N {
+	char i;
+}

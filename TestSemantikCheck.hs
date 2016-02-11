@@ -42,7 +42,12 @@ testProgramms =
 			[MethodDecl(Type "int","getX",[],Return(Just(LocalOrFieldVar("x")))),
 			MethodDecl(Type "int","callAddYToX",[(Type "int","y")],Return(Just(StmtExprExpr(MethodCall(This,"addYToX",[LocalOrFieldVar("y")])))))],[Type "K"]),
 		Class(Type "K",[FieldDecl(Type "int","x")],
-			[MethodDecl(Type "int","addYToX",[(Type "int","y")],Return(Just(Binary("+",LocalOrFieldVar("x"),LocalOrFieldVar("y")))))],[])]
+			[MethodDecl(Type "int","addYToX",[(Type "int","y")],Return(Just(Binary("+",LocalOrFieldVar("x"),LocalOrFieldVar("y")))))],[])],
+		[Class(Type "L",[FieldDecl(Type "int","i")],
+			[MethodDecl(Type "int","getI",[],Return(Just(LocalOrFieldVar("i")))),
+			MethodDecl(Type "char","getSupersI",[],Return(Just(InstVar(Super,"i"))))],[Type "M"]),
+		Class(Type "M",[],[],[Type "N"]),
+		Class(Type "N",[FieldDecl(Type "char","i")],[],[])]
 	]
 
 main :: IO ()

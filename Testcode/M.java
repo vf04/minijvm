@@ -1,0 +1,4 @@
+
+class M extends N {
+
+}

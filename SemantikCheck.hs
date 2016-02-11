@@ -12,6 +12,15 @@ typecheckExpr This localVars classes =
 	in
 		TypedExpr(This,thisClassType)
 
+typecheckExpr Super localVars classes =
+	let
+		thisVar = getMaybeLocalVar "this" localVars
+		thisClassType = getTypeFromLocalVar $ fromJustOrError thisVar "'this' var was not found."
+		thisClassDecl = fromJustOrError (getMaybeClass thisClassType classes) $ "class " ++ (getTypeNameFromType thisClassType) ++ " was not found when checking super expression"
+		superClasses = getSuperClassTypesFromClass thisClassDecl
+	in
+		TypedExpr(Super,typeListUpperBound superClasses)
+
 typecheckExpr (LocalOrFieldVar(varName)) localVars classes =
 	let
 		localVar = getMaybeLocalVar varName localVars
@@ -36,8 +45,8 @@ typecheckExpr (InstVar(expr, instVarName)) localVars classes =
 	let
 		instanceExpr = typecheckExpr expr localVars classes
 		instanceType = getTypeFromExpr instanceExpr
-		instanceClass = getMaybeClass instanceType classes
-		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass (fromJustOrError instanceClass $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var " ++ instVarName) classes
+		instanceClass = fromJustOrError (getMaybeClass instanceType classes) $ "class " ++ (getTypeNameFromType instanceType) ++ " was not found when checking inst var " ++ instVarName
+		instVarFieldDecl = getMaybeFieldDecl instVarName $ getFieldDeclsFromClass instanceClass classes
 		instVarType = getTypeFromFieldDecl $ fromJustOrError instVarFieldDecl $ "field declaration " ++ instVarName ++ " was not found in class " ++ (getTypeNameFromType instanceType)
 	in
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)
@@ -168,8 +177,8 @@ typecheckStmtExpr (MethodCall(instanceExpr, methodName, arguments)) localVars cl
 		typedArguments = typecheckListOfExpr arguments localVars classes
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
-		instanceClass = getMaybeClass instanceType classes
-		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass (fromJustOrError instanceClass $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName) classes
+		instanceClass = fromJustOrError (getMaybeClass instanceType classes) $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName
+		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass instanceClass classes
 		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
 		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
 		declArgTypes = map getTypeFromLocalVar methodArgs
@@ -215,16 +224,30 @@ typecheckMethod (MethodDecl(methodType, methodName, arguments, stmt)) thisType c
 typecheckClass :: Class -> [Class] -> Class
 typecheckClass (Class(className, fieldDecls, methodDecls,superClasses)) classes =
 	let
-		fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,superClasses)) -> typeExists fieldType classes) fieldDecls
+		superTypesExists = and $ map (\superClassType -> typeExists superClassType classes) superClasses
 	in
-		if fieldDeclTypesExist
+		if superTypesExists
 		then
 			let
-				typedMethods = map (\methodDecl -> typecheckMethod methodDecl className classes) methodDecls
+				superTypesAreNonRecursive = not $ elem className $ expandListOfSuperClasses superClasses classes
 			in
-				Class(className, fieldDecls, typedMethods,superClasses)
+				if superTypesAreNonRecursive
+				then
+					let
+						fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
+					in
+						if fieldDeclTypesExist
+						then
+							let
+								typedMethods = map (\methodDecl -> typecheckMethod methodDecl className classes) methodDecls
+							in
+								Class(className, fieldDecls, typedMethods,superClasses)
+						else
+							error $ "One or multiple field declarations of class " ++ (getTypeNameFromType className) ++ " name an invalid type"
+				else
+					error $ "Class " ++ (getTypeNameFromType className) ++ " expands recursively"
 		else
-			error $ "One or multiple field declarations of class " ++ (getTypeNameFromType className) ++ " name an invalid type"
+			error $ "class " ++ (getTypeNameFromType className) ++ " expands undeclared types"
 
 typecheckPrg :: Prg -> Prg
 typecheckPrg classes =
@@ -235,6 +258,11 @@ typecheckPrg classes =
 typecheckListOfExpr :: [Expr] -> [(Type, String)] -> [Class] -> [Expr]
 typecheckListOfExpr expressions localVars classes =
 	map (\expr -> typecheckExpr expr localVars classes) expressions
+
+typeListUpperBound :: [Type] -> Type
+typeListUpperBound [a] = a
+typeListUpperBound [a,b] = typeUpperBound a b
+typeListUpperBound (a : rest) = typeUpperBound a $ typeListUpperBound rest
 
 typeUpperBound :: Type -> Type -> Type
 typeUpperBound (Type "void") x = x
@@ -298,11 +326,11 @@ getMaybeLocalVar _ [] = Nothing
 getMaybeLocalVar name ((varType, varName) : localVars)
 	| varName == name = Just (varType, varName)
 	| otherwise = getMaybeLocalVar name localVars
-	
+
 fromJustOrError :: Maybe a -> String -> a
 fromJustOrError (Just(a)) _ = a
 fromJustOrError Nothing errorString = error errorString
-	
+
 getTypeFromLocalVar :: (Type, String) -> Type
 getTypeFromLocalVar(typeName,_) = typeName
 
@@ -316,12 +344,15 @@ getClasses :: [Type] -> [Class] -> [Class]
 getClasses classNames classes =
 	map (\className -> fromJustOrError (getMaybeClass className classes) $ "class " ++ (getTypeNameFromType className) ++ " was not found") classNames
 
+getClassesIncludingSuperClasses :: [Type] -> [Class] -> [Class]
+getClassesIncludingSuperClasses classNames classes = getClasses (expandListOfSuperClasses classNames classes) classes
+
 getFieldDeclsFromClass :: Class -> [Class] -> [FieldDecl]
 getFieldDeclsFromClass (Class(_,fieldDecls,_,[])) _ = fieldDecls
 getFieldDeclsFromClass (Class(className,fieldDecls,_,superClasses)) classes = 
 	let
-		superClassDecls = getClasses superClasses classes
-		superClassFieldDecls = concat $ map (\superClassDecl -> getFieldDeclsFromClass superClassDecl []) superClassDecls
+		superClassDecls = getClassesIncludingSuperClasses superClasses classes
+		superClassFieldDecls = concat $ map (\superClassDecl -> getFieldDeclsFromClass superClassDecl classes) superClassDecls
 	in
 		fieldDecls ++ superClassFieldDecls
 
@@ -329,10 +360,30 @@ getMethodDeclsFromClass :: Class -> [Class] -> [MethodDecl]
 getMethodDeclsFromClass (Class(_,_,methodDecls,[])) _ = methodDecls
 getMethodDeclsFromClass (Class(_,_,methodDecls,superClasses)) classes =
 	let
-		superClassDecls = getClasses superClasses classes
-		superClassMethodDecls = concat $ map (\superClassDecl -> getMethodDeclsFromClass superClassDecl []) superClassDecls
+		superClassDecls = getClassesIncludingSuperClasses superClasses classes
+		superClassMethodDecls = concat $ map (\superClassDecl -> getMethodDeclsFromClass superClassDecl classes) superClassDecls
 	in
 		methodDecls ++ superClassMethodDecls
+
+getSuperClassTypesFromClass :: Class -> [Type]
+getSuperClassTypesFromClass(Class(_,_,_,superClassTypes)) = superClassTypes
+
+expandListOfSuperClasses :: [Type] -> [Class] -> [Type]
+expandListOfSuperClasses classTypes classes = expandListOfSuperClassesHelper [] classTypes classes
+
+expandListOfSuperClassesHelper:: [Type] -> [Type] -> [Class] -> [Type]
+expandListOfSuperClassesHelper baseTypes [] classes =
+	baseTypes
+expandListOfSuperClassesHelper baseTypes classTypes classes =
+	let
+		superTypes = concat $ map getSuperClassTypesFromClass $ getClasses classTypes classes
+		baseTypeConatainedInSuperTypes = any (\baseType -> elem baseType superTypes) baseTypes
+	in
+		if baseTypeConatainedInSuperTypes
+		then
+			error $ "recursive derivation detected in class " ++ (getTypeNameFromType $ head $ foldr (\baseType list -> if elem baseType superTypes then baseType : list else list) [] baseTypes)
+		else
+			expandListOfSuperClassesHelper (baseTypes ++ classTypes) superTypes classes
 
 getTypeFromMethodDecl :: MethodDecl -> Type
 getTypeFromMethodDecl(MethodDecl(typeName,_,_,_)) = typeName
