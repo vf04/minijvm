@@ -223,7 +223,7 @@ classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
   | methoddeclaration { methodDeclToList($1) }
 
 fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , $2) }
---    | modifiers type variabledeclarators  SEMICOLON { $1, FieldDecl($2, $3) }
+  | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, $3) }
 
 type             : primitivetype { $1 }
 --   | referencetype { $1 }
@@ -239,6 +239,7 @@ variabledeclaratorid : IDENTIFIER { $1 }
 methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
 
 methodheader  : type methoddeclarator { ($1, $2) }
+  | modifiers type methoddeclarator { ($2, $3) }
   | VOID methoddeclarator { (Type("void"), $2) }
 
 methodbody       : block { $1 }
