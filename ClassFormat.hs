@@ -1,4 +1,5 @@
-module Jvm.Data.ClassFormat where
+--module Jvm.Data.ClassFormat where
+module ClassFormat where
 import qualified Data.ByteString.Lazy as BS
 
 -- class file format
@@ -103,7 +104,7 @@ data CP_Info =
                 , cad_cp                :: String
                 , desc                  :: String
                 }
-            deriving Show
+            deriving(Show,Eq)
 
 data Tag = TagClass              
          | TagFieldRef
@@ -116,7 +117,7 @@ data Tag = TagClass
          | TagDouble
          | TagNameAndType
          | TagUtf8
-        deriving Show
+        deriving(Show,Eq)
 
 data AccessFlags = AccessFlags [Int]
             deriving Show
@@ -218,7 +219,6 @@ data Attribute_Info =
             , len_local_attr            :: Int                              -- max_local
             , tam_code_attr             :: Int                              -- code_length
             , array_code_attr           :: ListaInt                         -- code como array de bytes
---, array_code_attr                     :: [Code]                           -- code array (altern.)
             , tam_ex_attr               :: Int                              -- exceptions_length
             , array_ex_attr             :: Tupla4Int                        -- no usamos
             , tam_atrr_attr             :: Int                              -- attributes_count

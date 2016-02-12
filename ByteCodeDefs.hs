@@ -1,4 +1,47 @@
+--wird nicht mehr gebraucht, jetzt in ClassFormat.hs
 module ByteCodeDefs where
+
+
+
+data ClassFile = ClassFile { magic            :: Magic              -- CAFEBABE
+                           , minver           :: MinorVersion       -- Versionen
+                           , maxver           :: MajorVersion       -- ''
+                           , count_cp         :: ConstantPool_Count -- Anz. Eintr. Konst.pool
+                           , array_cp         :: CP_Infos           -- Konstantenpool
+                           , acfg             :: AccessFlags        -- Berechtigungen
+                           , this             :: ThisClass          -- This-Klasse
+                           , super            :: SuperClass         -- Super-Klasse
+                           , count_interfaces :: Interfaces_Count   -- Anz. Interfaces
+                           , array_interfaces :: Interfaces         -- Interfaces
+                           , count_fields     :: Fields_Count       -- Anzahl Fields
+                           , array_fields     :: Field_Infos        -- Fields
+                           , count_methods    :: Methods_Count      -- Anz. Methoden
+                           , array_methods    :: Method_Infos       -- Methoden
+                           , count_attributes :: Attributes_Count   -- Anz. Attribute
+                           , array_attributes :: Attribute_Infos    -- Attribute
+}
+
+
+
+type Interfaces      = [Interface]
+type Field_Infos     = [Field_Info]
+type Method_Infos    = [Method_Info]
+type Attribute_Infos = [Attribute_Info]
+
+type ConstantPool_Count = Int
+type Interfaces_Count   = Int
+type Fields_Count       = Int
+type Methods_Count      = Int
+type Attributes_Count   = Int
+
+
+
+data Magic = Magic
+data MinorVersion = MinorVersion {numMinVer :: Int}
+data MajorVersion = MajorVersion {numMaxVer :: Int}
+
+
+
 
 data CP_Info =
     Class_Info
