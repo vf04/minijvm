@@ -117,7 +117,7 @@ codegen prg =
                 17        -- attribute_length
                 127       -- max stack
                 127       -- max locals
-                0         -- code_length
+                5         -- code_length
                 [0x2A,0x2B, 0x00, 0x01, 0xB1]  -- Code (fuer empty)
                 0         -- exception_table_length
                 []        -- exception_table
