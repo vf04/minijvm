@@ -96,7 +96,7 @@ codegen prg =
     in ClassFile
         Magic 
         (MinorVersion 0)
-        (MajorVersion 52)
+        (MajorVersion 51)
         ((length cp) +1)  -- count constant pool
         cp                -- constant pool
         (AccessFlags [32])      -- access flags (?!)
@@ -118,7 +118,7 @@ codegen prg =
                 127       -- max stack
                 127       -- max locals
                 0         -- code_length
-                []        -- Code?! (fuer empty)
+                [42,749569,177]  -- Code (fuer empty)
                 0         -- exception_table_length
                 []        -- exception_table
                 0         -- attributes_count
