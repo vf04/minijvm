@@ -15,3 +15,10 @@ getVarDeclIds(v) =
   else if length v == 1
     then getIdString(fst(head(v)))
   else getIdString(fst(head(v))) ++ "," ++ getVarDeclIds(tail(v))
+
+getVarDeclBody(v) =
+  if length v == 0
+    then []
+  else snd(head(v)) ++ getVarDeclBody(tail(v))
+
+getVarDeclAssignment(id, expr) = ([id], [StmtExprStmt(Assign(LocalOrFieldVar(id), expr))])

@@ -232,9 +232,11 @@ variabledeclarators : variabledeclarator { [$1] }
   | variabledeclarators  COMMA  variabledeclarator { $1 ++ [$3] }
 
 variabledeclarator : variabledeclaratorid { ([$1], []) }
---   | variabledeclaratorid ASSIGN variableinitializer { Empty }
+  | variabledeclaratorid ASSIGN variableinitializer {([$1], [StmtExprStmt(Assign(LocalOrFieldVar($1), $3))]) }
 
 variabledeclaratorid : IDENTIFIER { $1 }
+
+variableinitializer  : expression { $1 }
 
 methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
 
@@ -270,9 +272,9 @@ blockstatements  : blockstatement { [$1] }
 blockstatement  : localvariabledeclarationstatement { $1 }
    | statement  { $1 }
 
-localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), snd($1)) }
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), getVarDeclIds(snd($1))) }
 
-localvariabledeclaration : type variabledeclarators { ($1, getVarDeclIds($2)) }
+localvariabledeclaration : type variabledeclarators { ($1, $2) }
 
 statement        : statementwithouttrailingsubstatement { $1  }
 
@@ -286,7 +288,36 @@ emptystatement  :  SEMICOLON  { Empty }
 -- expressionstatement : statementexpression  SEMICOLON { $1 }
 
 returnstatement  : RETURN  SEMICOLON  { Return(Nothing) }
---   | RETURN expression  SEMICOLON { Return($2) }
+  | RETURN expression  SEMICOLON { Return(Just $2) }
+
+expression       : literal { $1 }
+  | statementexpression { StmtExprExpr($1) }
+
+literal   : INTLITERAL { Integer($1) }
+   | BOOLLITERAL { Bool($1) }
+   | CHARLITERAL { Char($1) }
+   | STRINGLITERAL { String($1) }
+   | JNULL { Jnull }
+
+statementexpression : methodinvocation { $1 }
+
+methodinvocation : name LBRACE   RBRACE  { MethodCall(This, $1, []) }
+  | name LBRACE argumentlist RBRACE { MethodCall(This, $1, $3) }
+   | primary  DOT IDENTIFIER LBRACE RBRACE  { MethodCall($1, $3, [])}
+   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { MethodCall($1, $3, $5) }
+
+primary   : primarynonewarray { $1 }
+
+primarynonewarray : literal { $1 }
+   | THIS { This }
+--   | LBRACE expression RBRACE  { $2 }
+  | fieldaccess { $1 }
+--  | methodinvocation { $1 }
+
+fieldaccess      : primary  DOT IDENTIFIER { InstVar($1, $3) }
+
+argumentlist     : expression { [$1] }
+   | argumentlist  COMMA  expression { $1 ++[$3] }
 
 {
 parse = compilationunit . alexScanTokens
