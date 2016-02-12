@@ -1,3 +1,5 @@
+module CodeGen where
+
 --main = putStrLn("Erfolg")
 --Datendefinitionen:
 import AbsSyn
