@@ -22,3 +22,14 @@ getVarDeclBody(v) =
   else snd(head(v)) ++ getVarDeclBody(tail(v))
 
 getVarDeclAssignment(id, expr) = ([id], [StmtExprStmt(Assign(LocalOrFieldVar(id), expr))])
+
+-- Get a list of statements.
+buildAssignStmt(Assign(LocalOrFieldVar(v), Jnull)) = []
+buildAssignStmt(Assign(LocalOrFieldVar(v), e)) = [StmtExprStmt(Assign(LocalOrFieldVar(v), e))]
+
+buildVDeclStmts(t, d) =
+  let s = fst(d) in
+  let e = snd(d) in
+  [LocalVarDecl(t, s)] ++ buildAssignStmt(Assign(LocalOrFieldVar(s), e))
+
+buildVDeclAssign(t, xs) = buildVDeclStmts(t, head(xs)) ++ buildVDeclAssign(t, tail(xs))
