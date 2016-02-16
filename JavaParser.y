@@ -292,6 +292,7 @@ returnstatement  : RETURN  SEMICOLON  { Return(Nothing) }
 
 expression       : literal { $1 }
   | statementexpression { StmtExprExpr($1) }
+  | name {LocalOrFieldVar($1) }
 
 literal   : INTLITERAL { Integer($1) }
    | BOOLLITERAL { Bool($1) }
