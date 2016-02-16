@@ -42,7 +42,7 @@ import JavaParserHelper
 %name numerictype
 %name variabledeclaratorid
 %name variableinitializer
-%name localvariabledeclarationstatement
+%name parse1 localvariabledeclarationstatement
 %name statement
 %name expression
 %name integraltype
@@ -222,8 +222,8 @@ classorinterfacetype : name { $1 }
 classmemberdeclaration : fielddeclaration { fieldDeclToList($1) }
   | methoddeclaration { methodDeclToList($1) }
 
-fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1 , getVarDeclIds($2)) }
-  | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, getVarDeclIds($3)) }
+fielddeclaration : type variabledeclarators  SEMICOLON { FieldDecl($1, getVarDeclIdString($2)) }
+  | modifiers type variabledeclarators  SEMICOLON { FieldDecl($2, getVarDeclIdString($3)) }
 
 type             : primitivetype { $1 }
   | referencetype { $1 }
@@ -231,8 +231,8 @@ type             : primitivetype { $1 }
 variabledeclarators : variabledeclarator { [$1] }
   | variabledeclarators  COMMA  variabledeclarator { $1 ++ [$3] }
 
-variabledeclarator : variabledeclaratorid { ([$1], []) }
-  | variabledeclaratorid ASSIGN variableinitializer {([$1], [StmtExprStmt(Assign(LocalOrFieldVar($1), $3))]) }
+variabledeclarator : variabledeclaratorid { ($1, Jnull) }
+  | variabledeclaratorid ASSIGN variableinitializer { ($1, $3) }
 
 variabledeclaratorid : IDENTIFIER { $1 }
 
@@ -266,13 +266,13 @@ formalparameterlist : formalparameter { [$1] }
 
 formalparameter  : type variabledeclaratorid { ($1, $2) }
 
-blockstatements  : blockstatement { [$1] }
-   | blockstatements blockstatement { $1 ++ [$2] }
+blockstatements  : blockstatement { $1 }
+  | blockstatements blockstatement { $1 ++ $2 }
 
 blockstatement  : localvariabledeclarationstatement { $1 }
-   | statement  { $1 }
+  | statement  { [$1] }
 
-localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { LocalVarDecl(fst($1), getVarDeclIds(snd($1))) }
+localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { buildVDeclAssign(fst($1), snd($1)) }
 
 localvariabledeclaration : type variabledeclarators { ($1, $2) }
 
@@ -303,8 +303,8 @@ statementexpression : methodinvocation { $1 }
 
 methodinvocation : name LBRACE   RBRACE  { MethodCall(This, $1, []) }
   | name LBRACE argumentlist RBRACE { MethodCall(This, $1, $3) }
-   | primary  DOT IDENTIFIER LBRACE RBRACE  { MethodCall($1, $3, [])}
-   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { MethodCall($1, $3, $5) }
+--   | primary  DOT IDENTIFIER LBRACE RBRACE  { MethodCall($1, $3, [])}
+--   | primary  DOT IDENTIFIER LBRACE argumentlist  RBRACE  { MethodCall($1, $3, $5) }
 
 primary   : primarynonewarray { $1 }
 
