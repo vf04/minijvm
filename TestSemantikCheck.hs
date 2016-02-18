@@ -1,7 +1,8 @@
 import AbsSyn
 import SemantikCheck
+import Data.List
 
-testProgramms =
+testPrograms =
 	[
 		[Class(Type "A",[],[],[])],
 		[Class(Type "B",[FieldDecl(Type "int","x"),FieldDecl(Type "int","y")],
@@ -55,7 +56,22 @@ testProgramms =
 	]
 
 main :: IO ()
-main = putStrLn $ concat $ map (\prg -> (show (typecheckPrg prg) ++ "\n\n")) testProgramms
+main = putStrLn $ concat $ map (\prg -> (formatPrg (typecheckPrg prg) ++ "\n")) testPrograms
+
+formatPrg :: Prg -> String
+formatPrg classes = concat $ map formatClass classes
+
+formatClass :: Class -> String
+formatClass (Class(Type className,fieldDecls,methodDecls,superClasses)) = "Class (Type \"" ++ className ++ "\",\n[" ++ (showInLines fieldDecls) ++ "],\n[" ++ (formatMethodDecls methodDecls) ++ "],\n" ++ (show superClasses) ++ ")\n\n"
+
+formatMethodDecls :: [MethodDecl] -> String
+formatMethodDecls methodDecls = concat $ intersperse ",\n" $ map formatMethodDecl methodDecls
+
+formatMethodDecl :: MethodDecl -> String
+formatMethodDecl (MethodDecl(Type typeName,methodName,args,stmt)) = "MethodDecl (Type \"" ++ typeName ++ "\",\"" ++ methodName ++ "\"," ++ (show args) ++ ",\n" ++ (show stmt) ++ ")"
+
+showInLines :: Show a => [a] -> String
+showInLines list = concat $ intersperse ",\n" $ map show list
 
 -- error tests
 
