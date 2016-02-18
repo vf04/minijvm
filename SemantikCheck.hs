@@ -288,7 +288,7 @@ typecheckClass (Class(className, fieldDecls, methodDecls,superClasses)) classes 
 				if superTypesAreNonRecursive
 				then
 					let
-						fieldDeclTypesExist = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
+						fieldDeclTypesExist = typecheckFieldDecls fieldDecls classes
 					in
 						if fieldDeclTypesExist
 						then

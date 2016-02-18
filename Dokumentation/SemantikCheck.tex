@@ -1,0 +1,242 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+
+\addtolength{\textwidth}{80px}
+\addtolength{\hoffset}{-40px}
+\addtolength{\topmargin}{-30px}
+\addtolength{\textheight}{30px}
+
+%opening
+\title{Semantische Analyse}
+\author{Lukas Ruppert}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Die Semantische Analyse überprüft die gegebene abstrakte Syntax auf semantische Fehler und typisiert zudem jeden einzelnen Ausdruck und jedes Statement.
+\end{abstract}
+
+\newpage
+\tableofcontents
+
+\newpage
+\section{Hauptfunktionen der SemantikCheck.hs}
+\subsection{typecheckExpr - Analyse und Typisierung eines Ausdrucks}
+\begin{lstlisting}[language=Haskell]
+typecheckExpr :: Expr -> [(Type, String)] -> [Class] -> Expr
+\end{lstlisting}
+typecheckExpr typisiert einen einzelnen Ausdruck unter Angabe der sichtbaren lokalen Variablen, sowie der Liste aller Klassen.
+Als Rückgabe erhält man stets einen Ausdruck der Form TypedExpr(rekursiv typisierter Ausdruck, Typ des Ausdrucks)
+\\
+\subsection{typecheckStmt - Analyse und Typisierung eines Statements}
+\begin{lstlisting}[language=Haskell]
+typecheckStmt :: Stmt -> [(Type, String)] -> [Class] -> Stmt
+\end{lstlisting}
+typecheckStmt typisiert ein einzelnes Statement unter Angabe der sichtbaren lokalen Variablen, sowie der Liste aller Klassen.
+Als Rückgabe erhält man stets ein Statement der Form TypedStmt(rekursiv typisiertes Statement, Typ des Statements)
+\\
+\subsection{typecheckStmtExpr - Analyse und Typisierung eines Statement-Ausdrucks}
+\begin{lstlisting}[language=Haskell]
+typecheckStmtExpr :: StmtExpr -> [(Type, String)] -> [Class] -> StmtExpr
+\end{lstlisting}
+typecheckStmtExpr typisiert einen einzelnen Statement-Ausdruck unter Angabe der sichtbaren lokalen Variablen, sowie der Liste aller Klassen.
+Als Rückgabe erhält man stets einen Statement-Ausdruck der Form TypedStmtExpr(rekursiv typisierter Statement-Ausdruck, Typ des Statement-Ausdrucks)
+\\
+\subsection{typecheckFieldDecls - Typprüfung von Feld-Deklarationen}
+\begin{lstlisting}[language=Haskell]
+typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
+\end{lstlisting}
+typecheckFieldDecls überprüft für jede Feld-Deklaration unter Angabe der Liste aller Klassen, ob die angegebenen Typen existieren.
+\\
+\subsection{typecheckMethod - Analyse und Typisierung einer Methode}
+\begin{lstlisting}[language=Haskell]
+typecheckMethod :: MethodDecl -> Type -> [Class] -> MethodDecl
+\end{lstlisting}
+typecheckMethod typisiert alle Statements einer gegebenen Methode unter Angabe des Klassennamens, aus dem die Methode stammt, sowie der Liste aller Klassen.
+Zusätzlich zur Typisierung der Methoden-Statements wird auch überprüft, ob die Argument-Typen definiert sind und ob der angegebene Rückgabetyp mit dem
+aus den Statements ausgewerteten Typ übereinstimmt.
+Als Ergebnis erhält man die Methode mit den typisierten Statements zurück.
+\\
+\subsection{typecheckClass - Analyse und Typisierung einer Klasse}
+\begin{lstlisting}[language=Haskell]
+typecheckClass :: Class -> [Class] -> Class
+\end{lstlisting}
+typecheckClass analysiert und typisiert eine Klasse unter Angabe der Liste aller Klassen.
+Zunächst wird sichergestellt, dass alle angegebenen Superklassen existieren und dass nicht rekursiv abgeleitet wird.
+Dann werden die Typen aller Feld-Deklarationen mittels typecheckFieldDecls überprüft.
+Zum Schluss werden alle Methoden mittels typecheckMethod analysiert und typisiert.
+Als Ergebnis erhält man die Klasse mit den typisierten Methoden.
+\\
+\subsection{typecheckPrg - Analyse und Typisierung eines Programms}
+\begin{lstlisting}[language=Haskell]
+typecheckPrg :: Prg -> Prg
+\end{lstlisting}
+typecheckPrg analysiert und typisiert die Liste aller Klassen und gibt als Ergebnis die Liste aller typisierten Klassen zurück.
+\\
+
+\newpage
+\section{Hilfsfunktionen der SemantikCheck.hs}
+\subsection{typecheckListOfExpr - Analyse und Typisierung einer Liste von Ausdrücken}
+\begin{lstlisting}[language=Haskell]
+typecheckListOfExpr :: [Expr] -> [(Type, String)] -> [Class] -> [Expr]
+\end{lstlisting}
+typecheckListOfExpr ruft unter Angabe der lokalen Variablen und der Liste aller Klassen typecheckExpr für eine Liste von Ausdrücken auf.
+\\
+\subsection{typeListUpperBound - Obermenge einer Liste von Typen}
+\begin{lstlisting}[language=Haskell]
+typeListUpperBound :: [Type] -> [Class] -> Type
+\end{lstlisting}
+typeListUpperBound liefert unter Angabe der Liste aller Klassen die Obermenge einer Liste von Typen.
+\\
+\subsection{typeUpperBound - Obermenge zweier Typem}
+\begin{lstlisting}[language=Haskell]
+typeUpperBound :: Type -> Type -> [Class] -> Type
+\end{lstlisting}
+typeUpperBound liefert unter Angabe der Liste aller Klassen die Obermenge zweier Typen.
+\\
+\subsection{getTypeOfBinary - Typ eines Ausdrucks mit zwei Argumenten}
+\begin{lstlisting}[language=Haskell]
+getTypeOfBinary :: String -> Type -> Type -> [Class] -> Type
+\end{lstlisting}
+getTypeOfBinary liefert unter Angabe der Liste aller Klassen den Ergebnistyp einer gegebenen Operation, angewandt auf zwei gegebene Typen.
+\\
+\subsection{getMaybeClass - Suchen einer Klasse}
+\begin{lstlisting}[language=Haskell]
+getMaybeClass :: Type -> [Class] -> Maybe Class
+\end{lstlisting}
+getMaybeClass liefert zu einem gegebenen Typ unter Angabe der Liste aller Klassen entweder die gesuchte Klasse oder Nichts,
+falls die gesuchte Klasse nicht definiert ist.
+\\
+\subsection{getMaybeFieldDecl - Suchen einer Feld-Deklaration}
+\begin{lstlisting}[language=Haskell]
+getMaybeFieldDecl :: String -> [FieldDecl] -> Maybe FieldDecl
+\end{lstlisting}
+getMaybeFieldDecl liefert zu einem gegebenen Feld-Namen unter Angabe der Liste aller Felder der Klasse entweder das gesuchte Feld oder Nichts,
+falls das gesuchte Feld nicht definiert ist.
+\\
+\subsection{getMaybeMethodDecl - Suchen einer Methode}
+\begin{lstlisting}[language=Haskell]
+getMaybeMethodDecl :: String -> [MethodDecl] -> Maybe MethodDecl
+\end{lstlisting}
+getMaybeMethodDecl liefert zu einem gegenenen Methodennamen unter Angabe der Liste aller Methoden der Klasse entweder die gesuchte Methode oder Nichts,
+falls die gesuchte Methode nicht definiert ist.
+\\
+\newpage
+\subsection{getMaybeLocalVar - Suchen einer Lokalen Variablen}
+\begin{lstlisting}[language=Haskell]
+getMaybeLocalVar :: String -> [(Type, String)] -> Maybe (Type, String)
+\end{lstlisting}
+getMaybeLocalVar liefert zum gegebenen Namen einer lokalen Variablen unter Angabe aller lokalen Variablen entweder die gesuchte lokale Variable oder Nichts,
+falls die gesuchte lokale Variable nicht exisitert.
+\\
+\subsection{fromJustOrError - Erhalten eines Wertes oder Ausgabe einer Fehlermeldung}
+\begin{lstlisting}[language=Haskell]
+fromJustOrError :: Maybe a -> String -> a
+\end{lstlisting}
+fromJustOrError liefert entweder den in einem Maybe gekapselten Wert oder gibt die angegebene Fehlermeldung aus.
+\\
+\subsection{getTypeFromLocalVar - Typ einer Lokalen Variablen}
+\begin{lstlisting}[language=Haskell]
+getTypeFromLocalVar :: (Type, String) -> Type
+\end{lstlisting}
+getTypeFromLocalVar liefert den Typ einer gegebenen lokalen Variablen.
+\\
+\subsection{getTypeFromFieldDecl - Typ einer Feld-Deklaration}
+\begin{lstlisting}[language=Haskell]
+getTypeFromFieldDecl :: FieldDecl -> Type
+\end{lstlisting}
+getTypeFromFieldDecl liefert den Typ einer gegebenen Feld-Deklaration.
+\\
+\subsection{getTypeFromClass - Typ einer Klasse}
+\begin{lstlisting}[language=Haskell]
+getTypeFromClass :: Class -> Type
+\end{lstlisting}
+getTypeFromClass liefert den Typ einer gegebenen Klasse.
+\\
+\subsection{getClasses - Suchen einer Liste von Klassen}
+\begin{lstlisting}[language=Haskell]
+getClasses :: [Type] -> [Class] -> [Class]
+\end{lstlisting}
+getClasses liefert zu einer Liste von Typen unter Angabe der Liste aller Klassen entweder die Liste aller gesuchten Klassen oder gibt eine Fehlermeldung aus,
+falls eine gesuchte Klasse nicht definiert ist.
+\\
+\subsection{getClassesIncludingSuperClasses - Suchen einer Liste von Klassen inklusive Superklassen}
+\begin{lstlisting}[language=Haskell]
+getClassesIncludingSuperClasses :: [Type] -> [Class] -> [Class]
+\end{lstlisting}
+getClassesIncludingSuperClasses liefert zu einer Liste von Typen unter Angabe aller Klassen entweder die Liste aller gesuchten Klassen sowie ihre Superklassen
+oder gibt eine Fehlermeldung aus, falls eine gesuchte Klasse oder Superklasse nicht definiert ist.
+\\
+\newpage
+\subsection{getFieldDeclsFromClass - Feld-Deklarationen einer Klasse}
+\begin{lstlisting}[language=Haskell]
+getFieldDeclsFromClass :: Class -> [Class] -> [FieldDecl]
+\end{lstlisting}
+getFieldDeclsFromClass liefert zu einer gegebenen Klasse unter Angabe der Liste aller Klassen alle Feld-Deklarationen der Klasse sowie ihrer Superklassen.
+\\
+\subsection{getMethodDeclsFromClass - Methoden einer Klasse}
+\begin{lstlisting}[language=Haskell]
+getMethodDeclsFromClass :: Class -> [Class] -> [MethodDecl]
+\end{lstlisting}
+getFieldDeclsFromClass liefert zu einer gegebenen Klasse unter Angabe der Liste aller Klassen alle Methoden der Klasse sowie ihrer Superklassen.
+\\
+\subsection{getConstructorFromClass - Konstruktor einer Klasse}
+\begin{lstlisting}[language=Haskell]
+getConstructorFromClass :: Class -> MethodDecl
+\end{lstlisting}
+getConstructorFromClass liefert zu einer gegebenen Klasse entweder den dort definierten Konstruktor oder den Standardkonstruktor der Klasse.
+\\
+\subsection{getSuperClassTypesFromClass - Liste der Superklassen}
+\begin{lstlisting}[language=Haskell]
+getSuperClassTypesFromClass :: Class -> [Type]
+\end{lstlisting}
+getSuperClassTypesFromClass liefert die Liste aller in der Klasse angegeben Superklassen. (In Java maximal eine.)
+\\
+\subsection{expandListOfSuperClasses - Superklassen von Superklassen}
+\begin{lstlisting}[language=Haskell]
+expandListOfSuperClasses :: [Type] -> [Class] -> [Type]
+\end{lstlisting}
+expandListOfSuperClasses liefert zu einer Liste von Superklassen unter Angabe der Liste aller Klassen die Liste der Superklassen inklusive aller ihrer Superklassen.
+\\
+\subsection{expandListOfSuperClassesHelper - Hilfsfunktion für expandListOfSuperClasses}
+\begin{lstlisting}[language=Haskell]
+expandListOfSuperClassesHelper:: [Type] -> [Type] -> [Class] -> [Type]
+\end{lstlisting}
+expandListOfSuperClassesHelper erhält zusätzlich zu den in expandListOfSuperClasses gegebenen Argumenten eine zweite Typliste, welche die bereits enthaltenen Klassen auflistet,
+um so rekursive Ableitungen zu erkennen.
+\\
+\subsection{getTypeFromMethodDecl - Rückgabetyp einer Methode}
+\begin{lstlisting}[language=Haskell]
+getTypeFromMethodDecl :: MethodDecl -> Type
+\end{lstlisting}
+getTypeFromMethodDecl liefert den angegebenen Rückgabetyp einer gegebenen Methode.
+\\
+\newpage
+\subsection{getArgsFromMethodDecl - Parameter einer Methode}
+\begin{lstlisting}[language=Haskell]
+getArgsFromMethodDecl :: MethodDecl -> [(Type,String)]
+\end{lstlisting}
+getArgsFromMethodDecl liefert die Parameter einer angegebenen Methode.
+\\
+\subsection{isSubtypeOf - Subtypenrelation}
+\begin{lstlisting}[language=Haskell]
+isSubtypeOf :: Type -> Type -> [Class] -> Bool
+\end{lstlisting}
+isSubtypeOf bestimmt unter Angabe der Liste aller Klassen, ob der erste gegebene Typ ein Subtyp des zweiten gegebenen Typs ist.
+\\
+\subsection{getTypeNameFromType - Typ als String}
+\begin{lstlisting}[language=Haskell]
+getTypeNameFromType :: Type -> String
+\end{lstlisting}
+getTypeNameFromType liefert zu einem gegebenen Typ den Typnamen als String.
+\\
+\subsection{typeExists - Existenz eines Typs}
+\begin{lstlisting}[language=Haskell]
+typeExists :: Type -> [Class] -> Bool
+\end{lstlisting}
+typeExists überprüft unter Angabe der Liste aller Klassen, ob ein gegebener Typ exisitert.
+
+\end{document}

@@ -104,3 +104,14 @@ errorInvalidNew = print $ typecheckPrg [Class(Type "InvalidNew",[],[MethodDecl(T
 errorInvalidNew2 :: IO()
 errorInvalidNew2 = print $ typecheckPrg [Class(Type "InvalidNew2",[],[MethodDecl(Type "void","InvalidNew2",[(Type "bool","b")],Empty),MethodDecl(Type "InvalidNew2","newInstance",[],Return(Just(StmtExprExpr(New(Type "InvalidNew2",[Integer(2)])))))],[])]
 
+errorInvalidFieldDecls :: IO()
+errorInvalidFieldDecls = print $ typecheckPrg [Class(Type "InvalidFieldDecls",[FieldDecl(Type "A","a")],[],[])]
+
+errorInvalidReturnType :: IO()
+errorInvalidReturnType = print $ typecheckPrg [Class(Type "InvalidReturnType",[],[MethodDecl(Type "void","addXY",[(Type "int","x"),(Type "int","y")],Return(Just(Binary("+",LocalOrFieldVar("x"),LocalOrFieldVar("y")))))],[])]
+
+errorInvalidDerivation ::IO()
+errorInvalidDerivation = print $ typecheckPrg [Class(Type "A",[],[],[Type "B"]),Class(Type "B",[],[],[Type "C"])]
+
+errorInvalidDerivation2 ::IO()
+errorInvalidDerivation2 = print $ typecheckPrg [Class(Type "A",[],[],[Type "B"]),Class(Type "B",[],[],[Type "C"]),Class(Type "C",[],[],[Type "A"])]
