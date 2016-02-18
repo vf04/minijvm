@@ -42,7 +42,7 @@ import JavaParserHelper
 %name numerictype
 %name variabledeclaratorid
 %name variableinitializer
-%name parse1 localvariabledeclarationstatement
+%name localvariabledeclarationstatement
 %name statement
 %name expression
 %name integraltype
@@ -85,7 +85,7 @@ import JavaParserHelper
 %name equalityexpression
 %name relationalexpression
 %name shiftexpression
-%name additiveexpression
+%name parse1 additiveexpression
 %name multiplicativeexpression
 %tokentype { Token }
 %error { parseError }
@@ -280,19 +280,23 @@ statement        : statementwithouttrailingsubstatement { $1  }
 
 statementwithouttrailingsubstatement : block { $1 }
    | emptystatement { $1 }
---  | expressionstatement { $1 }
+  | expressionstatement { $1 }
   | returnstatement { $1 }
 
 emptystatement  :  SEMICOLON  { Empty }
 
--- expressionstatement : statementexpression  SEMICOLON { $1 }
+expressionstatement : statementexpression  SEMICOLON { StmtExprStmt($1) }
 
 returnstatement  : RETURN  SEMICOLON  { Return(Nothing) }
   | RETURN expression  SEMICOLON { Return(Just $2) }
 
 expression       : literal { $1 }
-  | statementexpression { StmtExprExpr($1) }
-  | name {LocalOrFieldVar($1) }
+--  | statementexpression { $1 }
+  | name { LocalOrFieldVar($1) }
+  | fieldaccess { $1 }
+  | unaryexpression { $1 }
+  | additiveexpression { $1 }
+  | multiplicativeexpression { $1 }
 
 literal   : INTLITERAL { Integer($1) }
    | BOOLLITERAL { Bool($1) }
@@ -300,7 +304,8 @@ literal   : INTLITERAL { Integer($1) }
    | STRINGLITERAL { String($1) }
    | JNULL { Jnull }
 
-statementexpression : methodinvocation { $1 }
+statementexpression : assignment { $1 }
+--  | assignment { $1 }
 
 methodinvocation : name LBRACE   RBRACE  { MethodCall(This, $1, []) }
   | name LBRACE argumentlist RBRACE { MethodCall(This, $1, $3) }
@@ -312,13 +317,38 @@ primary   : primarynonewarray { $1 }
 primarynonewarray : literal { $1 }
    | THIS { This }
 --   | LBRACE expression RBRACE  { $2 }
-  | fieldaccess { $1 }
+  -- | fieldaccess { $1 }
 --  | methodinvocation { $1 }
 
 fieldaccess      : primary  DOT IDENTIFIER { InstVar($1, $3) }
 
 argumentlist     : expression { [$1] }
    | argumentlist  COMMA  expression { $1 ++[$3] }
+
+-- Modified assignmentexpression to expression.
+assignment       : lefthandside assignmentoperator assignmentexpression { getAssignExpr($1, $2, $3) }
+
+lefthandside     : name { LocalOrFieldVar($1) }
+  | fieldaccess { $1 }
+
+assignmentoperator : ASSIGN { "=" }
+
+assignmentexpression : literal { $1 }
+  | name { LocalOrFieldVar($1) }
+  | fieldaccess { $1 }
+
+unaryexpression : PLUS unaryexpression { Unary("+", $2) }
+  | MINUS unaryexpression { Unary("-", $2) }
+  | unaryexpressionnotplusminus { $1 }
+
+unaryexpressionnotplusminus : expression { $1 }
+
+additiveexpression : multiplicativeexpression { $1 }
+   | additiveexpression PLUS multiplicativeexpression { Binary("+", $1, $3) }
+  | additiveexpression MINUS multiplicativeexpression { Binary("-", $1, $3) }
+
+multiplicativeexpression : unaryexpression { $1 }
+  | multiplicativeexpression MUL expression { Binary("*", $1, $3) }
 
 {
 parse = compilationunit . alexScanTokens
