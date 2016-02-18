@@ -47,8 +47,60 @@ testProgramms =
 			[MethodDecl(Type "int","getI",[],Return(Just(LocalOrFieldVar("i")))),
 			MethodDecl(Type "char","getSupersI",[],Return(Just(InstVar(Super,"i"))))],[Type "M"]),
 		Class(Type "M",[],[MethodDecl(Type "N","getNewM",[],Block([LocalVarDecl(Type "N","myN"),StmtExprStmt(Assign(LocalOrFieldVar("myN"),StmtExprExpr(New(Type "M",[])))),Return(Just(LocalOrFieldVar("myN")))]))],[Type "N"]),
-		Class(Type "N",[FieldDecl(Type "char","i")],[],[])]
+		Class(Type "N",[FieldDecl(Type "char","i")],[],[])],
+		[Class(Type "O",[FieldDecl(Type "int","x")],
+			[MethodDecl(Type "void","O",[(Type "int","x")],StmtExprStmt(Assign(InstVar(This,"x"),LocalOrFieldVar("x")))),MethodDecl(Type "O","test",[],Block([LocalVarDecl(Type "int","a"),
+				Block([LocalVarDecl(Type "int","i"),StmtExprStmt(Assign(LocalOrFieldVar("i"),Integer(40))),StmtExprStmt(Assign(LocalOrFieldVar("a"),LocalOrFieldVar("i")))]),
+				Block([LocalVarDecl(Type "int","i"),StmtExprStmt(Assign(LocalOrFieldVar("i"),Binary("+",LocalOrFieldVar("a"),Integer(2)))),Return(Just(StmtExprExpr(New(Type "O",[LocalOrFieldVar("i")]))))])]))],[])]
 	]
 
 main :: IO ()
 main = putStrLn $ concat $ map (\prg -> (show (typecheckPrg prg) ++ "\n\n")) testProgramms
+
+-- error tests
+
+errorUndeclaredVar :: IO()
+errorUndeclaredVar = print $ typecheckPrg [Class(Type "UndeclaredVar",[],[MethodDecl(Type "int","getX",[],Return(Just(LocalOrFieldVar("x"))))],[])]
+
+errorUndeclaredInstVar :: IO()
+errorUndeclaredInstVar = print $ typecheckPrg [Class(Type "A",[],[],[]),Class(Type "UndeclaredInstVar",[],[MethodDecl(Type "int","getYFromX",[(Type "A","x")],Return(Just(InstVar(LocalOrFieldVar("x"),"y"))))],[])]
+
+errorInvalidUnary :: IO()
+errorInvalidUnary = print $ typecheckPrg [Class(Type "InvalidUnary",[],[MethodDecl(Type "void","doSomething",[],Block([LocalVarDecl(Type "String","a"),StmtExprStmt(Assign(LocalOrFieldVar("a"),Unary("++",String("test"))))]))],[])]
+
+errorInvalidUnary2 :: IO()
+errorInvalidUnary2 = print $ typecheckPrg [Class(Type "InvalidUnary2",[],[MethodDecl(Type "void","doSomething",[],Block([LocalVarDecl(Type "int","i"),StmtExprStmt(Assign(LocalOrFieldVar("i"),Unary("!",LocalOrFieldVar("i"))))]))],[])]
+
+errorInvalidBinary :: IO()
+errorInvalidBinary = print $ typecheckPrg [Class(Type "InvalidBinary",[],[MethodDecl(Type "void","doSomething",[],Block([LocalVarDecl(Type "int","i"),StmtExprStmt(Assign(LocalOrFieldVar("i"),Binary("+",Char('c'),Bool(False))))]))],[])]
+
+errorInvalidBinary2 :: IO()
+errorInvalidBinary2 = print $ typecheckPrg [Class(Type "InvalidBinary2",[],[MethodDecl(Type "void","doSomething",[],Block([LocalVarDecl(Type "bool","b"),StmtExprStmt(Assign(LocalOrFieldVar("b"),Binary("==",Char('c'),Bool(False))))]))],[])]
+
+errorDuplicateLocalVar :: IO()
+errorDuplicateLocalVar = print $ typecheckPrg [Class(Type "DuplicateLocalVar",[],[MethodDecl(Type "void","errorMethod",[],Block([LocalVarDecl(Type "int","x"),LocalVarDecl(Type "int","x")]))],[])]
+
+errorDuplicateLocalVar2 :: IO()
+errorDuplicateLocalVar2 = print $ typecheckPrg [Class(Type "DuplicateLocalVar2",[],[MethodDecl(Type "void","errorMethod",[(Type "int","x")],Block([LocalVarDecl(Type "int","x")]))],[])]
+
+errorInvalidCondition :: IO()
+errorInvalidCondition = print $ typecheckPrg [Class(Type "InvalidCondition",[],[MethodDecl(Type "int","doSomething",[(Type "int","i")],If(LocalOrFieldVar("i"),Return(Just(Integer(42))),Just(Return(Just(Integer(0))))))],[])]
+
+errorInvalidAssign :: IO()
+errorInvalidAssign = print $ typecheckPrg [Class(Type "InvalidAssign",[FieldDecl(Type "char","c")],[MethodDecl(Type "void","setI",[(Type "String","s")],StmtExprStmt(Assign(LocalOrFieldVar("c"),LocalOrFieldVar("s"))))],[])]
+
+errorUndeclaredMethod :: IO()
+errorUndeclaredMethod = print $ typecheckPrg [Class(Type "UndeclaredMethod",[],[MethodDecl(Type "void","callSomething",[],StmtExprStmt(MethodCall(This,"undeclaredMethod",[])))],[])]
+
+errorMissingMethodArgs :: IO()
+errorMissingMethodArgs = print $ typecheckPrg [Class(Type "MissingMethodArgs",[FieldDecl(Type "int","x")],[MethodDecl(Type "void","callSomething",[],StmtExprStmt(MethodCall(This,"setX",[]))),MethodDecl(Type "void","setX",[(Type "int","value")],StmtExprStmt(Assign(LocalOrFieldVar("x"),LocalOrFieldVar("value"))))],[])]
+
+errorInvalidMethodArgs :: IO()
+errorInvalidMethodArgs = print $ typecheckPrg [Class(Type "InvalidMethodArgs",[FieldDecl(Type "int","x")],[MethodDecl(Type "void","callSomething",[],StmtExprStmt(MethodCall(This,"setX",[This]))),MethodDecl(Type "void","setX",[(Type "int","value")],StmtExprStmt(Assign(LocalOrFieldVar("x"),LocalOrFieldVar("value"))))],[])]
+
+errorInvalidNew :: IO()
+errorInvalidNew = print $ typecheckPrg [Class(Type "InvalidNew",[],[MethodDecl(Type "void","InvalidNew",[(Type "int","i")],Empty),MethodDecl(Type "InvalidNew","newInstance",[],Return(Just(StmtExprExpr(New(Type "InvalidNew",[])))))],[])]
+
+errorInvalidNew2 :: IO()
+errorInvalidNew2 = print $ typecheckPrg [Class(Type "InvalidNew2",[],[MethodDecl(Type "void","InvalidNew2",[(Type "bool","b")],Empty),MethodDecl(Type "InvalidNew2","newInstance",[],Return(Just(StmtExprExpr(New(Type "InvalidNew2",[Integer(2)])))))],[])]
+

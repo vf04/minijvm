@@ -1,6 +1,7 @@
 module SemantikCheck where
 
 import AbsSyn
+import Data.Maybe
 
 -- Ausdruck/Statement, Lokale Variablen, Sichtbare Klassen -> Getypter Ausdruck/Statement
 
@@ -25,7 +26,7 @@ typecheckExpr (LocalOrFieldVar(varName)) localVars classes =
 	let
 		localVar = getMaybeLocalVar varName localVars
 	in
-		if localVar == Nothing
+		if isNothing localVar
 		then
 			let
 				thisVar = getMaybeLocalVar "this" localVars
@@ -52,8 +53,21 @@ typecheckExpr (InstVar(expr, instVarName)) localVars classes =
 		TypedExpr((InstVar(instanceExpr, instVarName)),instVarType)
 
 typecheckExpr (Unary(operator, expr)) localVars classes = 
-	let typedExpr = typecheckExpr expr localVars classes
-	in TypedExpr(Unary(operator,typedExpr),getTypeFromExpr(typedExpr))
+	let
+		typedExpr = typecheckExpr expr localVars classes
+		typedExprType = getTypeFromExpr typedExpr
+		operatorValid = elem operator ["+","-","++","--","!","~"]
+		operandVaild = elem typedExprType [Type "bool",Type "int"]
+	in
+		if operatorValid
+		then
+			if and [operandVaild,or[not (operator == "!"),typedExprType == (Type "bool")]]
+			then
+				TypedExpr(Unary(operator,typedExpr),typedExprType)
+			else
+				error $ "operator " ++ operator ++ " cannot be applied to operand " ++ (show expr) ++ " of type " ++ (getTypeNameFromType typedExprType) 
+		else
+			error $ "Invalid unary operator" ++ operator
 
 typecheckExpr (Binary(operator, expA, expB)) localVars classes = 
 	let
@@ -79,15 +93,18 @@ typecheckExpr (StmtExprExpr(stmtExpr)) localVars classes =
 
 typecheckStmt :: Stmt -> [(Type, String)] -> [Class] -> Stmt
 typecheckStmt (Block((LocalVarDecl(localVarType, localVarName)) : stmts)) localVars classes =
-	let
-		typedFirstStmt = typecheckStmt (LocalVarDecl(localVarType,localVarName)) localVars classes
-		oldLocalVars = removeLocalVar localVarName localVars
-		newLocalVars = (localVarType, localVarName) : oldLocalVars
-		typedBlockOfStmts = typecheckStmt (Block(stmts)) newLocalVars classes
-		typedRestOfStmts = (\(TypedStmt(Block(typedStmts),_)) -> typedStmts) typedBlockOfStmts
-		typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
-	in
-		TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlockOfStmts)
+	if isNothing $ getMaybeLocalVar localVarName localVars
+	then
+		let
+			typedFirstStmt = typecheckStmt (LocalVarDecl(localVarType,localVarName)) localVars classes
+			newLocalVars = (localVarType, localVarName) : localVars
+			typedBlockOfStmts = typecheckStmt (Block(stmts)) newLocalVars classes
+			typedRestOfStmts = (\(TypedStmt(Block(typedStmts),_)) -> typedStmts) typedBlockOfStmts
+			typeOfBlockOfStmts = getTypeFromStmt typedBlockOfStmts
+		in
+			TypedStmt(Block(typedFirstStmt : typedRestOfStmts),typeOfBlockOfStmts)
+	else
+		error $ "local var " ++ localVarName ++ " has already been declared"
 
 typecheckStmt (Block(firstStmt : stmts)) localVars classes =
 	let
@@ -117,7 +134,11 @@ typecheckStmt (While(conditionExpr, stmt)) localVars classes =
 		typedStmt = typecheckStmt stmt localVars classes
 		stmtType = getTypeFromStmt typedStmt
 	in
-		TypedStmt(While(typedConditionExpr, typedStmt), stmtType)
+		if (getTypeFromExpr typedConditionExpr) == Type "bool"
+		then
+			TypedStmt(While(typedConditionExpr, typedStmt), stmtType)
+		else
+			error $ "while condition " ++ (show conditionExpr) ++ " evaluates to " ++ (getTypeNameFromType (getTypeFromExpr typedConditionExpr)) ++ " and not to boolean"
 
 typecheckStmt (LocalVarDecl(varType, varName)) localVars classes =
 	TypedStmt(LocalVarDecl(varType, varName),Type "void")
@@ -129,7 +150,11 @@ typecheckStmt (If(conditionExpr, stmtTrue, Nothing)) localVars classes =
 		stmtTrueType = getTypeFromStmt typedStmtTrue
 		upperBoundStmtType = typeUpperBound stmtTrueType (Type "void") classes
 	in
-		TypedStmt(If(typedConditionExpr, typedStmtTrue, Nothing),upperBoundStmtType)
+		if (getTypeFromExpr typedConditionExpr) == Type "bool"
+		then
+			TypedStmt(If(typedConditionExpr, typedStmtTrue, Nothing),upperBoundStmtType)
+		else
+			error $ "if condition " ++ (show conditionExpr) ++ " evaluates to " ++ (getTypeNameFromType (getTypeFromExpr typedConditionExpr)) ++ " and not to boolean"
 
 typecheckStmt (If(conditionExpr, stmtTrue, Just stmtFalse)) localVars classes =
 	let
@@ -140,7 +165,11 @@ typecheckStmt (If(conditionExpr, stmtTrue, Just stmtFalse)) localVars classes =
 		stmtFalseType = getTypeFromStmt typedStmtFalse
 		upperBoundStmtType = typeUpperBound stmtTrueType stmtFalseType classes
 	in
-		TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)
+		if (getTypeFromExpr typedConditionExpr) == Type "bool"
+		then
+			TypedStmt(If(typedConditionExpr, typedStmtTrue, (Just typedStmtFalse)),upperBoundStmtType)
+		else
+			error $ "if condition " ++ (show conditionExpr) ++ " evaluates to " ++ (getTypeNameFromType (getTypeFromExpr typedConditionExpr)) ++ " and not to boolean"
 
 typecheckStmt Empty localVars classes =
 		TypedStmt(Empty,Type "void")
@@ -169,8 +198,25 @@ typecheckStmtExpr (Assign(expA, expB)) localVars classes =
 typecheckStmtExpr (New(newType, constructorArguments)) localVars classes =
 	let
 		typedConstructorArguments = typecheckListOfExpr constructorArguments localVars classes
+		newClass = fromJustOrError (getMaybeClass newType classes) $ "could not find class " ++ (getTypeNameFromType newType) ++ " when calling its constructor"
+		constructorDecl = getConstructorFromClass newClass
+		constructorArgs = getArgsFromMethodDecl constructorDecl
+		declArgTypes = map getTypeFromLocalVar constructorArgs
+		actualArgTypes = map getTypeFromExpr typedConstructorArguments
+		argNumbersMatch = (length constructorArgs) == (length constructorArguments)
 	in
-		TypedStmtExpr(New(newType,typedConstructorArguments),newType)
+		if argNumbersMatch
+		then
+			let
+				argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType classes) $ zip declArgTypes actualArgTypes
+			in
+				if argTypesMatch
+				then
+					TypedStmtExpr(New(newType,typedConstructorArguments),newType)
+				else
+					error $ "argument type mismatch when calling constructor of class " ++ (getTypeNameFromType newType)
+		else
+			error $ "the constructor of class " ++ (getTypeNameFromType newType) ++ " requires " ++ (show (length constructorArgs)) ++ " argument(s), but " ++ (show (length constructorArguments)) ++ " were given"
 
 typecheckStmtExpr (MethodCall(instanceExpr, methodName, arguments)) localVars classes =
 	let
@@ -178,18 +224,26 @@ typecheckStmtExpr (MethodCall(instanceExpr, methodName, arguments)) localVars cl
 		typedInstance = typecheckExpr instanceExpr localVars classes
 		instanceType = getTypeFromExpr typedInstance
 		instanceClass = fromJustOrError (getMaybeClass instanceType classes) $ "could not find class " ++ (getTypeNameFromType instanceType) ++ " when calling " ++ methodName
-		methodDecl = getMaybeMethodDecl methodName $ getMethodDeclsFromClass instanceClass classes
-		methodType = getTypeFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
-		methodArgs = getArgsFromMethodDecl $ fromJustOrError methodDecl $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
+		methodDecl = fromJustOrError (getMaybeMethodDecl methodName $ getMethodDeclsFromClass instanceClass classes) $ "could not find method declaration " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
+		methodType = getTypeFromMethodDecl methodDecl 
+		methodArgs = getArgsFromMethodDecl methodDecl
 		declArgTypes = map getTypeFromLocalVar methodArgs
 		actualArgTypes = map getTypeFromExpr typedArguments
-		argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType classes) $ zip declArgTypes actualArgTypes
+		argNumbersMatch = (length methodArgs) == (length arguments)
 	in
-		if argTypesMatch
+		if argNumbersMatch
 		then
-			TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType)
+			let
+				argTypesMatch = and $ map (\(declType,actualType) -> isSubtypeOf actualType declType classes) $ zip declArgTypes actualArgTypes
+			in
+				if argTypesMatch
+				then
+					TypedStmtExpr(MethodCall(typedInstance,methodName,typedArguments),methodType)
+				else
+					error $ "argument type mismatch when calling " ++ methodName ++ " of class " ++ (getTypeNameFromType instanceType)
 		else
-			error $ "argument type mismatch when calling " ++ methodName ++ " in class " ++ (getTypeNameFromType instanceType)
+			error $ methodName ++ " of class " ++ (getTypeNameFromType instanceType) ++ " requires " ++ (show (length methodArgs)) ++ " argument(s), but " ++ (show (length arguments)) ++ " were given"
+		
 
 typecheckFieldDecls :: [FieldDecl] -> [Class] -> Bool
 typecheckFieldDecls fieldDecls classes = and $ map (\(FieldDecl(fieldType,_)) -> typeExists fieldType classes) fieldDecls
@@ -260,6 +314,7 @@ typecheckListOfExpr expressions localVars classes =
 	map (\expr -> typecheckExpr expr localVars classes) expressions
 
 typeListUpperBound :: [Type] -> [Class] -> Type
+typeListUpperBound [] _ = Type "Object"
 typeListUpperBound [a] _ = a
 typeListUpperBound [a,b] classes = typeUpperBound a b classes
 typeListUpperBound (a : rest) classes = typeUpperBound a (typeListUpperBound rest classes) classes
@@ -275,6 +330,14 @@ typeUpperBound (Type "char") (Type "char") _ = Type "char"
 typeUpperBound (Type "int") (Type "bool") _ = Type "int"
 typeUpperBound (Type "int") (Type "int") _ = Type "int"
 typeUpperBound (Type "String") (Type "String") _ = Type "String"
+typeUpperBound _ (Type "int") _ = Type "Object"
+typeUpperBound (Type "int") _ _ = Type "Object"
+typeUpperBound _ (Type "bool") _ = Type "Object"
+typeUpperBound (Type "bool") _ _ = Type "Object"
+typeUpperBound _ (Type "char") _ = Type "Object"
+typeUpperBound (Type "char") _ _ = Type "Object"
+typeUpperBound _ (Type "Object") _ = Type "Object"
+typeUpperBound (Type "Object") _ _ = Type "Object"
 typeUpperBound x y []
 	| x == y = x
 	|otherwise = Type "Object"
@@ -378,6 +441,18 @@ getMethodDeclsFromClass (Class(_,_,methodDecls,superClasses)) classes =
 	in
 		methodDecls ++ superClassMethodDecls
 
+getConstructorFromClass :: Class -> MethodDecl
+getConstructorFromClass (Class(classType,_,methodDecls,_)) =
+	let
+		className = getTypeNameFromType classType
+		maybeSpecificConstructor = getMaybeMethodDecl className methodDecls
+	in
+		if isNothing maybeSpecificConstructor
+		then
+			MethodDecl(Type "void",className,[],Empty)
+		else
+			(\(Just constructor) -> constructor) maybeSpecificConstructor
+
 getSuperClassTypesFromClass :: Class -> [Type]
 getSuperClassTypesFromClass(Class(_,_,_,superClassTypes)) = superClassTypes
 
@@ -406,12 +481,6 @@ getArgsFromMethodDecl(MethodDecl(_,_,args,_)) = args
 
 isSubtypeOf :: Type -> Type -> [Class] -> Bool
 isSubtypeOf x y classes = (typeUpperBound x y classes) == y
-
-removeLocalVar :: String -> [(Type, String)] -> [(Type, String)]
-removeLocalVar varName varList =
-	foldr (\(aVarType,aVarName) list -> 
-		if aVarName == varName then list
-		else (aVarType,aVarName) : list) [] varList
 
 getTypeNameFromType :: Type -> String
 getTypeNameFromType (Type(typeName)) = typeName
