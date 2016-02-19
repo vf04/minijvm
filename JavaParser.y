@@ -44,7 +44,7 @@ import JavaParserHelper
 %name variableinitializer
 %name localvariabledeclarationstatement
 %name statement
-%name expression
+%name parse1 expression
 %name integraltype
 %name localvariabledeclaration
 %name statementwithouttrailingsubstatement
@@ -85,7 +85,7 @@ import JavaParserHelper
 %name equalityexpression
 %name relationalexpression
 %name shiftexpression
-%name parse1 additiveexpression
+%name additiveexpression
 %name multiplicativeexpression
 %tokentype { Token }
 %error { parseError }
@@ -236,7 +236,11 @@ variabledeclarator : variabledeclaratorid { ($1, Jnull) }
 
 variabledeclaratorid : IDENTIFIER { $1 }
 
-variableinitializer  : expression { $1 }
+variableinitializer  : literal { $1 }
+  | name { LocalOrFieldVar($1) }
+  | fieldaccess { $1 }
+  | classinstancecreationexpression { StmtExprExpr($1) }
+
 
 methoddeclaration : methodheader methodbody { MethodDecl(fst($1), fst(snd($1)), snd(snd($1)), $2) }
 
@@ -291,12 +295,13 @@ returnstatement  : RETURN  SEMICOLON  { Return(Nothing) }
   | RETURN expression  SEMICOLON { Return(Just $2) }
 
 expression       : literal { $1 }
---  | statementexpression { $1 }
   | name { LocalOrFieldVar($1) }
   | fieldaccess { $1 }
   | unaryexpression { $1 }
   | additiveexpression { $1 }
   | multiplicativeexpression { $1 }
+  | classinstancecreationexpression { StmtExprExpr($1) }
+   | THIS { This }
 
 literal   : INTLITERAL { Integer($1) }
    | BOOLLITERAL { Bool($1) }
@@ -305,7 +310,6 @@ literal   : INTLITERAL { Integer($1) }
    | JNULL { Jnull }
 
 statementexpression : assignment { $1 }
---  | assignment { $1 }
 
 methodinvocation : name LBRACE   RBRACE  { MethodCall(This, $1, []) }
   | name LBRACE argumentlist RBRACE { MethodCall(This, $1, $3) }
@@ -336,6 +340,7 @@ assignmentoperator : ASSIGN { "=" }
 assignmentexpression : literal { $1 }
   | name { LocalOrFieldVar($1) }
   | fieldaccess { $1 }
+  | classinstancecreationexpression { StmtExprExpr($1) }
 
 unaryexpression : PLUS unaryexpression { Unary("+", $2) }
   | MINUS unaryexpression { Unary("-", $2) }
@@ -349,6 +354,9 @@ additiveexpression : multiplicativeexpression { $1 }
 
 multiplicativeexpression : unaryexpression { $1 }
   | multiplicativeexpression MUL expression { Binary("*", $1, $3) }
+
+classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { New(Type($2), []) }
+                 | NEW classtype LBRACE  argumentlist  RBRACE  { New(Type($2), $4) }
 
 {
 parse = compilationunit . alexScanTokens
