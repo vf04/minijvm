@@ -44,11 +44,11 @@ import JavaParserHelper
 %name variableinitializer
 %name localvariabledeclarationstatement
 %name statement
-%name parse1 expression
+%name expression
 %name integraltype
 %name localvariabledeclaration
 %name statementwithouttrailingsubstatement
-%name ifthenstatement
+%name parse1 ifthenstatement
 %name ifthenelsestatement
 %name whilestatement
 %name assignmentexpression
@@ -281,6 +281,9 @@ localvariabledeclarationstatement : localvariabledeclaration  SEMICOLON  { build
 localvariabledeclaration : type variabledeclarators { ($1, $2) }
 
 statement        : statementwithouttrailingsubstatement { $1  }
+   | whilestatement { $1 }
+   | ifthenstatement { $1 }
+   | ifthenelsestatement { $1 }
 
 statementwithouttrailingsubstatement : block { $1 }
    | emptystatement { $1 }
@@ -302,6 +305,9 @@ expression       : literal { $1 }
   | multiplicativeexpression { $1 }
   | classinstancecreationexpression { StmtExprExpr($1) }
    | THIS { This }
+   | shiftexpression { $1 }
+   | relationalexpression { $1 }
+   | equalityexpression { $1 }
 
 literal   : INTLITERAL { Integer($1) }
    | BOOLLITERAL { Bool($1) }
@@ -355,8 +361,35 @@ additiveexpression : multiplicativeexpression { $1 }
 multiplicativeexpression : unaryexpression { $1 }
   | multiplicativeexpression MUL expression { Binary("*", $1, $3) }
 
+  | multiplicativeexpression DIV expression { Binary("/", $1, $3) }
+
+  | multiplicativeexpression MOD expression { Binary("%", $1, $3) }
+
 classinstancecreationexpression : NEW classtype LBRACE   RBRACE  { New(Type($2), []) }
                  | NEW classtype LBRACE  argumentlist  RBRACE  { New(Type($2), $4) }
+
+shiftexpression  : additiveexpression { $1 }
+
+relationalexpression : shiftexpression { $1 }
+   | relationalexpression LESS shiftexpression { Binary("<", $1, $3) }
+   | relationalexpression GREATER shiftexpression { Binary(">", $1, $3) }
+   | relationalexpression LESSEQUAL shiftexpression { Binary("<=", $1, $3) }
+   | relationalexpression GREATEREQUAL shiftexpression { Binary(">=", $1, $3) }
+
+equalityexpression : relationalexpression { $1 }
+   | equalityexpression EQUAL relationalexpression { Binary("==", $1, $3) }
+   | equalityexpression NOTEQUAL relationalexpression { Binary("!=", $1, $3) }
+
+whilestatement   : WHILE LBRACE expression  RBRACE  statement { While($3, $5) }
+
+ifthenstatement  : IF LBRACE expression  RBRACE  statement { If($3, $5, Nothing) }
+
+ifthenelsestatement : IF LBRACE expression  RBRACE statementnoshortif ELSE statement  { If($3, $5, Just $7) }
+
+statementnoshortif : statementwithouttrailingsubstatement { $1 }
+  | ifthenelsestatementnoshortif { $1 }
+
+ifthenelsestatementnoshortif : IF LBRACE expression  RBRACE  statementnoshortif ELSE statementnoshortif  { If($3, $5, Just $7) }
 
 {
 parse = compilationunit . alexScanTokens

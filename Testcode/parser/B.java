@@ -21,11 +21,19 @@ class B {
 	}
 	
 	int addXY() {
-		return x*y;
+		return x + y;
 	}
 	
 	int add(int a, int b) {
 		return a*b;
 	}
-	
+  int div(int a, int b){
+  return a / b;
+  }
+  
+  int calc(int x){
+    return 5 % 2 + 2 * x;
+  }
+
+
 }
