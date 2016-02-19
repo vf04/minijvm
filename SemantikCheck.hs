@@ -322,8 +322,8 @@ typeListUpperBound (a : rest) classes = typeUpperBound a (typeListUpperBound res
 typeUpperBound :: Type -> Type -> [Class] -> Type
 typeUpperBound (Type "void") x _ = x
 typeUpperBound x (Type "void") _ = x
-typeUpperBound (Type "null") x _ = Type "null"
-typeUpperBound x (Type "null") _ = Type "null"
+typeUpperBound (Type "null") x _ = x
+typeUpperBound x (Type "null") _ = x
 typeUpperBound (Type "bool") (Type "bool") _ = Type "bool"
 typeUpperBound (Type "bool") (Type "int") _ = Type "int"
 typeUpperBound (Type "char") (Type "char") _ = Type "char"
@@ -480,6 +480,8 @@ getArgsFromMethodDecl :: MethodDecl -> [(Type,String)]
 getArgsFromMethodDecl(MethodDecl(_,_,args,_)) = args
 
 isSubtypeOf :: Type -> Type -> [Class] -> Bool
+isSubtypeOf (Type "void") (Type "void") _ = True
+isSubtypeOf (Type "void") _ _ = False
 isSubtypeOf x y classes = (typeUpperBound x y classes) == y
 
 getTypeNameFromType :: Type -> String
