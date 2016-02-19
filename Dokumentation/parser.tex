@@ -1,0 +1,78 @@
+\documentclass{scrartcl}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{amsmath}
+\usepackage{url}
+\title{Dokumentation Java-Parser}
+\author{Jakob Herrmann}
+\date{WS-15-16}
+\begin{document}
+\maketitle
+\begin{abstract}
+Der Parser akzeptiert eine Klasse bzw. eine Menge von Klassen\footnote{Funktioniert leider nicht.}, erstellt mithilfe des Lexers eine Liste von Tokens und baut daraus den abstrakten Syntaxbaum auf.
+\end{abstract}
+
+\tableofcontents
+\section{Verwendete Files}
+
+\begin{itemize}
+\item JavaLexer.x: das Alex-File mit den relevanten Tokens
+\item JavaLexer.hs: das mit Alex erzeugte Haskell-Modul
+\item JavaParser.y: das Happy-File; enthält die Regeln für die Java-Grammatik
+\item JavaParser.hs: das mit Happy erzeugte Haskell-Modul
+\item JavaParserHelper.hs: Haskell-Modul mit diversen Hilfsfunktionen für den Parser
+\item AbsSyn.hs: Haskell-Modul mit den relevanten Datentypen für die abstrakte Syntax
+\item Parser.hs: Auslesen eines Java-Files
+\item Im Verzeichnis ./Testcode/parser befinden sich einige kleinere Java-Klassen, die mit dem Parser funktionieren.
+\end{itemize}
+
+\section{Funktionen des Parsers}
+
+Der Parser wird mit folgender Funktion aufgerufen:
+\begin{verbatim}
+parse :: String -> [Class]
+\end{verbatim}
+...oder in Parser.hs durch die Funktion:
+\begin{verbatim}
+compileJavaFile(file)
+\end{verbatim}
+Die folgenden Classdeclarations werden erkannt:
+\begin{itemize}
+\item die leere Klasse
+\item Klasse mit FieldDeclarations, jedoch ohne Assignments, da dies in der abstrakten Syntax nicht vorgesehen ist und wir das Modul nicht ändern wollten
+\item Klasse mit Feldern und/oder Methoden, jedoch keine Konstruktoren
+\item Modifiers werden generell erkannt, in der abstrakten Syntax jedoch nicht berücksichtigt.
+\end{itemize}
+
+\subsection{Method declarations}
+
+Methoden können Folgendes enthalten:
+\begin{itemize}
+\item den leeren Block
+\item lokale Variablen
+\item Assignments\footnote{nicht mit Operatoren}
+\item Return-Statements mit oder ohne Expression
+\item If-Statements
+\item While-Statements
+\end{itemize}
+
+\subsection{Expressions}
+
+Folgende Expressions werden erkannt:
+\begin{itemize}
+\item Literale des Typs int und String
+\item Unary Expressions
+\item Rechenoperationen mit den Operatoren +, -, *, /+ \%\footnote{nur in Return-Statements}
+\item Shiftexpressions
+\item Equalityexpressions
+\item Referenzen auf Klassen
+\end{itemize}
+
+\section{Nicht vollständig implementierte Funktionen}
+
+\begin{itemize}
+\item Methodcalls funktionieren nicht richtig und werden daher nicht erkannt.
+\item Assignments mit Operatoren füren zu einer Endlosschleife und sind daher in der Grammatik zwar vorgesehen, jedoch deaktiviert.
+\end{itemize}
+\end{document}

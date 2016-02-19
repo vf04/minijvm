@@ -1,5 +1,7 @@
 
 class D {
+  int x;
+  
 	D getThis() {
 		return this;
 	}

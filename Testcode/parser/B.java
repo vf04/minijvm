@@ -4,6 +4,8 @@ class B {
 	int x;
 	int y;
 	
+	int emptyMethod(){}
+	
 	int getX() {
 		return x;
 	}
@@ -26,14 +28,17 @@ class B {
 	
 	int add(int a, int b) {
 		return a*b;
-	}
+}
   int div(int a, int b){
-  return a / b;
+    return a / b;
   }
   
   int calc(int x){
     return 5 % 2 + 2 * x;
   }
 
-
+  void doNothing(){
+    int x = 5;
+    return;
+  }
 }
